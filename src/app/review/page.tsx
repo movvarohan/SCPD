@@ -3,7 +3,8 @@ import { ReviewQueue, type ReviewDraftDTO } from "@/components/review-queue";
 import { Badge } from "@/components/ui";
 import { db } from "@/lib/db";
 import { decodeJson } from "@/lib/serialization";
-import { fullNameOf } from "@/lib/utils";
+import { fullNameOf, bestEmailOf } from "@/lib/utils";
+import { emailStatus } from "@/lib/providers/email";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function ReviewPage() {
     id: d.id,
     leadId: d.leadId,
     leadName: fullNameOf(d.lead),
+    leadEmail: bestEmailOf(d.lead),
     title: d.lead.title,
     company: d.lead.companyName,
     industry: d.lead.industry,
@@ -51,6 +53,8 @@ export default async function ReviewPage() {
     selectionReason: selectionReason(d.lead),
   }));
 
+  const email = await emailStatus();
+
   return (
     <div>
       <PageHeader
@@ -58,7 +62,7 @@ export default async function ReviewPage() {
         description="Human approval before anything goes out. Edit, approve, regenerate, or reject each draft."
         actions={<Badge tone="amber">{dto.length} awaiting review</Badge>}
       />
-      <ReviewQueue drafts={dto} />
+      <ReviewQueue drafts={dto} emailLive={email.configured} />
     </div>
   );
 }

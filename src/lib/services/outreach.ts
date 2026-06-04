@@ -149,7 +149,7 @@ function templateGenerate(lead: Lead, input: OutreachInput): GeneratedOutreach {
 
 // --- LLM generation (when a real provider is configured) -------------------
 async function llmGenerate(lead: Lead, input: OutreachInput): Promise<GeneratedOutreach> {
-  const llm = getLLMProvider();
+  const llm = await getLLMProvider();
   const facts = {
     name: fullNameOf(lead),
     firstName: lead.firstName,
@@ -213,8 +213,21 @@ export async function generateOutreach(
   lead: Lead,
   input: OutreachInput
 ): Promise<GeneratedOutreach> {
-  if (llmIsLive()) {
-    return llmGenerate(lead, input);
+  if (await llmIsLive()) {
+    try {
+      return await llmGenerate(lead, input);
+    } catch (err) {
+      // If the live LLM call fails (rate limit, network), fall back to templates
+      // with a warning rather than failing the whole generation.
+      const base = templateGenerate(lead, input);
+      return {
+        ...base,
+        warnings: [
+          `LLM generation failed, used template fallback: ${(err as Error).message.slice(0, 140)}`,
+          ...base.warnings,
+        ],
+      };
+    }
   }
   return templateGenerate(lead, input);
 }

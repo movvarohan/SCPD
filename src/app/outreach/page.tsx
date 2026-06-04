@@ -19,7 +19,7 @@ export default async function OutreachPage() {
     getOrgSettings(),
   ]);
 
-  const llm = llmStatus();
+  const llm = await llmStatus();
 
   return (
     <div>

@@ -50,6 +50,7 @@ export function SourceForm({
         { enrichWithClay }
       );
       setResult(res);
+      if (res.note) toast(res.note, "info");
       toast(`Sourced ${res.imported} new leads (${res.duplicates} duplicates skipped).`, "success");
       router.refresh();
     });
@@ -163,6 +164,9 @@ export function SourceForm({
               <div className="flex justify-between"><span>Imported</span><span className="font-medium text-emerald-600">{result.imported}</span></div>
               <div className="flex justify-between"><span>Duplicates</span><span className="font-medium text-amber-600">{result.duplicates}</span></div>
               <div className="flex justify-between"><span>Provider</span><span className="font-mono text-xs">{result.provider}</span></div>
+              {result.note && (
+                <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-700">{result.note}</p>
+              )}
             </CardContent>
           </Card>
         )}

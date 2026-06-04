@@ -14,11 +14,13 @@ import { OUTREACH_TYPE_LABELS } from "@/lib/types";
 import {
   reviewDraft, regenerateDraft, updateDraft, type ReviewAction,
 } from "@/server/actions/outreach";
+import { sendOutreach } from "@/server/actions/integrations";
 
 export interface ReviewDraftDTO {
   id: string;
   leadId: string;
   leadName: string;
+  leadEmail: string | null;
   title: string | null;
   company: string | null;
   industry: string | null;
@@ -38,7 +40,7 @@ export interface ReviewDraftDTO {
   selectionReason: string;
 }
 
-export function ReviewQueue({ drafts }: { drafts: ReviewDraftDTO[] }) {
+export function ReviewQueue({ drafts, emailLive }: { drafts: ReviewDraftDTO[]; emailLive: boolean }) {
   if (drafts.length === 0) {
     return (
       <EmptyState
@@ -51,13 +53,13 @@ export function ReviewQueue({ drafts }: { drafts: ReviewDraftDTO[] }) {
   return (
     <div className="space-y-4">
       {drafts.map((d) => (
-        <DraftCard key={d.id} draft={d} />
+        <DraftCard key={d.id} draft={d} emailLive={emailLive} />
       ))}
     </div>
   );
 }
 
-function DraftCard({ draft }: { draft: ReviewDraftDTO }) {
+function DraftCard({ draft, emailLive }: { draft: ReviewDraftDTO; emailLive: boolean }) {
   const { toast } = useToast();
   const router = useRouter();
   const [pending, start] = React.useTransition();
@@ -90,6 +92,18 @@ function DraftCard({ draft }: { draft: ReviewDraftDTO }) {
     start(async () => {
       await regenerateDraft(draft.id);
       toast("Draft regenerated.", "success");
+      router.refresh();
+    });
+  }
+  function approveAndSend() {
+    if (!draft.leadEmail) { toast("This lead has no email address.", "error"); return; }
+    const real = emailLive ? "This sends a REAL email" : "Mailbox is mock — this will simulate a send";
+    if (!confirm(`Approve and send to ${draft.leadEmail}? ${real}.`)) return;
+    start(async () => {
+      // Persist any edits, approve, then send.
+      await reviewDraft(draft.id, "approve", edits);
+      const res = await sendOutreach(draft.leadId, draft.id);
+      toast(res.message, res.ok ? "success" : "error");
       router.refresh();
     });
   }
@@ -168,7 +182,8 @@ function DraftCard({ draft }: { draft: ReviewDraftDTO }) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button variant="success" size="sm" onClick={() => act("approve")} disabled={pending}><Check className="h-3.5 w-3.5" /> Approve</Button>
-              <Button variant="secondary" size="sm" onClick={() => act("ready_to_send")} disabled={pending}><Send className="h-3.5 w-3.5" /> Mark ready to send</Button>
+              <Button variant="primary" size="sm" onClick={approveAndSend} disabled={pending || !draft.leadEmail} title={draft.leadEmail ? "" : "No email on file"}><Send className="h-3.5 w-3.5" /> Approve &amp; send</Button>
+              <Button variant="secondary" size="sm" onClick={() => act("ready_to_send")} disabled={pending}>Mark ready</Button>
               <Button variant="outline" size="sm" onClick={regen} disabled={pending}><RefreshCw className="h-3.5 w-3.5" /> Regenerate</Button>
               <Button variant="danger" size="sm" onClick={() => act("reject")} disabled={pending}><X className="h-3.5 w-3.5" /> Reject</Button>
             </div>

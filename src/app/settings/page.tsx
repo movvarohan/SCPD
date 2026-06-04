@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
+import { CredentialsPanel } from "@/components/credentials-panel";
 import { db } from "@/lib/db";
 import { getOrgSettings } from "@/lib/services/settings";
+import { getIntegrations } from "@/lib/credentials";
 import { llmStatus } from "@/lib/providers/llm";
 import { apolloStatus } from "@/lib/providers/apollo";
 import { clayStatus } from "@/lib/providers/clay";
@@ -34,10 +36,29 @@ export default async function SettingsPage() {
     db.emailTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
 
-  const llm = llmStatus();
-  const apollo = apolloStatus();
-  const clay = clayStatus();
-  const email = emailStatus();
+  const [llm, apollo, clay, email, integ] = await Promise.all([
+    llmStatus(), apolloStatus(), clayStatus(), emailStatus(), getIntegrations(),
+  ]);
+
+  const credentialsView = {
+    llmProvider: integ.llmProvider,
+    anthropicModel: integ.anthropicModel,
+    openaiModel: integ.openaiModel,
+    emailProvider: integ.emailProvider,
+    gmailUser: integ.gmailUser,
+    smtpHost: integ.smtpHost,
+    smtpPort: integ.smtpPort,
+    imapHost: integ.imapHost,
+    imapPort: integ.imapPort,
+    mailFromName: integ.mailFromName,
+    has: {
+      anthropic: Boolean(integ.anthropicApiKey),
+      openai: Boolean(integ.openaiApiKey),
+      apollo: Boolean(integ.apolloApiKey),
+      clay: Boolean(integ.clayApiKey),
+      gmailPassword: Boolean(integ.gmailAppPassword),
+    },
+  };
 
   return (
     <div>
@@ -61,6 +82,9 @@ export default async function SettingsPage() {
         ]}
         permissions={PERMISSIONS}
       />
+      <div className="mt-4">
+        <CredentialsPanel view={credentialsView} />
+      </div>
     </div>
   );
 }

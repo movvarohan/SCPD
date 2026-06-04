@@ -1,9 +1,10 @@
+import nodemailer from "nodemailer";
+import { ImapFlow } from "imapflow";
+import { getIntegrations, type Integrations } from "@/lib/credentials";
+
 // ---------------------------------------------------------------------------
 // Email provider abstraction (sending / reply tracking)
 // ---------------------------------------------------------------------------
-// EMAIL_PROVIDER = "mock" | "gmail" | "smartlead"
-// The MVP never actually sends email; status is tracked manually. These
-// adapters are where real sending is wired in later.
 
 export interface SendResult {
   ok: boolean;
@@ -22,20 +23,15 @@ export interface ReplyEvent {
 export interface EmailProvider {
   readonly name: string;
   sendEmail(to: string, subject: string, body: string): Promise<SendResult>;
-  scheduleFollowUp(
-    to: string,
-    subject: string,
-    body: string,
-    sendAt: Date
-  ): Promise<SendResult>;
+  scheduleFollowUp(to: string, subject: string, body: string, sendAt: Date): Promise<SendResult>;
   getReplies(since?: Date): Promise<ReplyEvent[]>;
-  syncStatus(): Promise<{ synced: number }>;
+  verify(): Promise<{ ok: boolean; error?: string }>;
 }
 
+// --- Mock provider ---------------------------------------------------------
 class MockEmailProvider implements EmailProvider {
   readonly name = "email:mock";
   async sendEmail(): Promise<SendResult> {
-    // Does NOT send. Returns a fake id so the UI flow works end-to-end.
     return { ok: true, providerMessageId: `mock-${Date.now()}` };
   }
   async scheduleFollowUp(): Promise<SendResult> {
@@ -44,83 +40,151 @@ class MockEmailProvider implements EmailProvider {
   async getReplies(): Promise<ReplyEvent[]> {
     return [];
   }
-  async syncStatus(): Promise<{ synced: number }> {
-    return { synced: 0 };
+  async verify() {
+    return { ok: true };
   }
 }
 
-class GmailProvider implements EmailProvider {
-  readonly name = "email:gmail";
-  constructor(
-    private clientId: string,
-    private clientSecret: string,
-    private refreshToken: string
-  ) {}
-  async sendEmail(): Promise<SendResult> {
-    // TODO: Use Gmail API users.messages.send with an OAuth2 access token
-    //   refreshed from GMAIL_REFRESH_TOKEN. Build a raw RFC 822 message.
-    throw new Error("GmailProvider.sendEmail not implemented — see TODO.");
+// --- Gmail (App Password) via SMTP + IMAP ----------------------------------
+// Sends as the connected Gmail account; replies land in that real inbox and
+// are read back over IMAP. Requires a Gmail App Password (2FA must be on):
+//   https://myaccount.google.com/apppasswords
+class GmailSmtpProvider implements EmailProvider {
+  readonly name = "email:gmail_smtp";
+  constructor(private c: Integrations) {}
+
+  private transporter() {
+    return nodemailer.createTransport({
+      host: this.c.smtpHost,
+      port: this.c.smtpPort,
+      secure: this.c.smtpPort === 465, // 465 = implicit TLS, 587 = STARTTLS
+      auth: { user: this.c.gmailUser, pass: this.c.gmailAppPassword },
+    });
   }
-  async scheduleFollowUp(): Promise<SendResult> {
-    // TODO: Gmail has no native scheduling via API; persist a job and send later.
-    throw new Error("GmailProvider.scheduleFollowUp not implemented — see TODO.");
+
+  private from() {
+    return this.c.mailFromName
+      ? `"${this.c.mailFromName}" <${this.c.gmailUser}>`
+      : this.c.gmailUser;
   }
-  async getReplies(): Promise<ReplyEvent[]> {
-    // TODO: Poll users.messages.list with a query for threads in INBOX.
-    throw new Error("GmailProvider.getReplies not implemented — see TODO.");
+
+  // Convert plain-text body (with newlines) to a simple HTML version.
+  private html(body: string) {
+    const escaped = body
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;white-space:pre-wrap">${escaped}</div>`;
   }
-  async syncStatus(): Promise<{ synced: number }> {
-    throw new Error("GmailProvider.syncStatus not implemented — see TODO.");
+
+  async sendEmail(to: string, subject: string, body: string): Promise<SendResult> {
+    try {
+      const info = await this.transporter().sendMail({
+        from: this.from(),
+        to,
+        subject,
+        text: body,
+        html: this.html(body),
+      });
+      return { ok: true, providerMessageId: info.messageId };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  }
+
+  async scheduleFollowUp(to: string, subject: string, body: string): Promise<SendResult> {
+    // Gmail SMTP can't natively schedule. TODO: persist a job + a cron/worker
+    // that calls sendEmail at sendAt. For now, send immediately is the caller's
+    // choice; this stub reports not-implemented so the UI can keep it manual.
+    return { ok: false, error: "Scheduling not implemented for Gmail SMTP — send follow-ups manually for now." };
+  }
+
+  async getReplies(since?: Date): Promise<ReplyEvent[]> {
+    const client = new ImapFlow({
+      host: this.c.imapHost,
+      port: this.c.imapPort,
+      secure: true,
+      auth: { user: this.c.gmailUser, pass: this.c.gmailAppPassword },
+      logger: false,
+    });
+    const replies: ReplyEvent[] = [];
+    await client.connect();
+    try {
+      const lock = await client.getMailboxLock("INBOX");
+      try {
+        const sinceDate = since ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const uids = await client.search({ since: sinceDate });
+        const list = Array.isArray(uids) ? uids.slice(-200) : [];
+        for await (const msg of client.fetch(list, { envelope: true, bodyStructure: false, source: false })) {
+          const env = msg.envelope;
+          if (!env) continue;
+          const from = env.from?.[0]?.address ?? "";
+          const to = env.to?.[0]?.address ?? "";
+          replies.push({
+            from,
+            to,
+            subject: env.subject ?? "",
+            snippet: env.subject ?? "",
+            receivedAt: (env.date ?? new Date()).toISOString(),
+          });
+        }
+      } finally {
+        lock.release();
+      }
+    } finally {
+      await client.logout().catch(() => {});
+    }
+    return replies;
+  }
+
+  async verify() {
+    try {
+      await this.transporter().verify();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
   }
 }
 
+// --- Smartlead (placeholder) -----------------------------------------------
 class SmartleadProvider implements EmailProvider {
   readonly name = "email:smartlead";
   constructor(private apiKey: string) {}
   async sendEmail(): Promise<SendResult> {
-    // TODO: Smartlead campaigns API — add lead to a campaign / send via
-    //   https://server.smartlead.ai/api/v1/...  with api_key query param.
-    throw new Error("SmartleadProvider.sendEmail not implemented — see TODO.");
+    // TODO: Smartlead campaigns API.
+    return { ok: false, error: "SmartleadProvider.sendEmail not implemented — see TODO." };
   }
   async scheduleFollowUp(): Promise<SendResult> {
-    throw new Error("SmartleadProvider.scheduleFollowUp not implemented — see TODO.");
+    return { ok: false, error: "Not implemented." };
   }
   async getReplies(): Promise<ReplyEvent[]> {
-    // TODO: Smartlead webhook / reply API.
-    throw new Error("SmartleadProvider.getReplies not implemented — see TODO.");
+    return [];
   }
-  async syncStatus(): Promise<{ synced: number }> {
-    throw new Error("SmartleadProvider.syncStatus not implemented — see TODO.");
+  async verify() {
+    return { ok: false, error: "Smartlead not implemented." };
   }
 }
 
-export function getEmailProvider(): EmailProvider {
-  const provider = (process.env.EMAIL_PROVIDER || "mock").toLowerCase();
-  if (
-    provider === "gmail" &&
-    process.env.GMAIL_CLIENT_ID &&
-    process.env.GMAIL_CLIENT_SECRET &&
-    process.env.GMAIL_REFRESH_TOKEN
-  ) {
-    void GmailProvider;
-    // return new GmailProvider(...)
+export async function getEmailProvider(): Promise<EmailProvider> {
+  const c = await getIntegrations();
+  if (c.emailProvider === "gmail_smtp" && c.gmailUser && c.gmailAppPassword) {
+    return new GmailSmtpProvider(c);
   }
-  if (provider === "smartlead" && process.env.SMARTLEAD_API_KEY) {
-    void SmartleadProvider;
-    // return new SmartleadProvider(process.env.SMARTLEAD_API_KEY)
+  if (c.emailProvider === "smartlead" && c.smartleadApiKey) {
+    return new SmartleadProvider(c.smartleadApiKey);
   }
   return new MockEmailProvider();
 }
 
-export function emailStatus(): { configured: boolean; mode: string } {
-  const provider = (process.env.EMAIL_PROVIDER || "mock").toLowerCase();
-  const gmail = Boolean(
-    process.env.GMAIL_CLIENT_ID && process.env.GMAIL_REFRESH_TOKEN
-  );
-  const smartlead = Boolean(process.env.SMARTLEAD_API_KEY);
-  if (provider === "gmail" && gmail)
-    return { configured: true, mode: "gmail (placeholder)" };
-  if (provider === "smartlead" && smartlead)
+export async function emailStatus(): Promise<{ configured: boolean; mode: string }> {
+  const c = await getIntegrations();
+  if (c.emailProvider === "gmail_smtp" && c.gmailUser && c.gmailAppPassword) {
+    return { configured: true, mode: `gmail · ${c.gmailUser}` };
+  }
+  if (c.emailProvider === "smartlead" && c.smartleadApiKey) {
     return { configured: true, mode: "smartlead (placeholder)" };
+  }
+  if (c.emailProvider === "gmail_smtp") {
+    return { configured: false, mode: "gmail (needs address + app password)" };
+  }
   return { configured: false, mode: "mock (no real send)" };
 }

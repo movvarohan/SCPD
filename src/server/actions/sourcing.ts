@@ -16,21 +16,22 @@ export interface SourcingResult {
   imported: number;
   duplicates: number;
   provider: string;
+  note?: string;
 }
 
 export async function sourceLeads(
   criteria: SourcingCriteria,
   options: { enrichWithClay: boolean }
 ): Promise<SourcingResult> {
-  const apollo = getApolloProvider();
+  const apollo = await getApolloProvider();
   let found = await apollo.searchPeople(criteria);
 
-  // Enrich via Apollo (fills gaps).
+  // Enrich via Apollo (fills gaps + reveals emails where missing).
   found = await apollo.bulkEnrich(found);
 
   // Optionally run the Clay workflow for extra enrichment + research notes.
   if (options.enrichWithClay) {
-    const clay = getClayProvider();
+    const clay = await getClayProvider();
     found = await clay.runWorkflow(found);
     for (const lead of found) {
       const notes = await clay.generateResearchNotes(lead);
@@ -86,11 +87,14 @@ export async function sourceLeads(
   revalidatePath("/source");
   revalidatePath("/");
 
+  const note = (apollo as { note?: string | null }).note ?? undefined;
+
   return {
     ok: true,
     found: found.length,
     imported: unique.length,
     duplicates: duplicates.length,
     provider: apollo.name,
+    note: note ?? undefined,
   };
 }

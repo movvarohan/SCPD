@@ -1,5 +1,6 @@
 import type { RawLead, EnrichedLead } from "@/lib/types";
 import { generateMockLead } from "./mockData";
+import { getIntegrations } from "@/lib/credentials";
 
 // ---------------------------------------------------------------------------
 // Clay provider interface
@@ -59,17 +60,18 @@ class RealClayProvider implements ClayProvider {
   }
 }
 
-export function getClayProvider(): ClayProvider {
-  const key = process.env.CLAY_API_KEY?.trim();
-  if (key) {
-    // return new RealClayProvider(key, process.env.CLAY_WORKFLOW_URL);
+export async function getClayProvider(): Promise<ClayProvider> {
+  const { clayApiKey } = await getIntegrations();
+  if (clayApiKey.trim()) {
+    // return new RealClayProvider(clayApiKey, process.env.CLAY_WORKFLOW_URL);
     void RealClayProvider;
     return new MockClayProvider();
   }
   return new MockClayProvider();
 }
 
-export function clayStatus(): { configured: boolean; mode: string } {
-  const configured = Boolean(process.env.CLAY_API_KEY?.trim());
+export async function clayStatus(): Promise<{ configured: boolean; mode: string }> {
+  const { clayApiKey } = await getIntegrations();
+  const configured = Boolean(clayApiKey.trim());
   return { configured, mode: configured ? "key present (mock active)" : "mock" };
 }

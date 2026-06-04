@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function SourcePage() {
   const user = await getCurrentUser();
   const allowed = can(user, "source");
-  const apollo = apolloStatus();
-  const clay = clayStatus();
+  const apollo = await apolloStatus();
+  const clay = await clayStatus();
 
   return (
     <div>

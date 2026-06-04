@@ -17,7 +17,7 @@ export default async function TrackingPage() {
     orderBy: { updatedAt: "desc" },
     include: { assignedPD: true, drafts: { orderBy: { updatedAt: "desc" }, take: 1 } },
   });
-  const email = emailStatus();
+  const email = await emailStatus();
 
   return (
     <div>
@@ -27,6 +27,7 @@ export default async function TrackingPage() {
       />
       <TrackingTable
         emailMode={email.mode}
+        emailLive={email.configured}
         rows={leads.map((l) => ({
           id: l.id,
           name: fullNameOf(l),
@@ -34,6 +35,7 @@ export default async function TrackingPage() {
           email: bestEmailOf(l),
           status: l.status,
           draftStatus: l.drafts[0]?.status ?? null,
+          draftId: l.drafts[0]?.id ?? null,
           assignedPD: l.assignedPD?.name ?? null,
         }))}
       />

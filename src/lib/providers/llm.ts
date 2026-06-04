@@ -5,6 +5,8 @@
 // With no key present we generate deterministic template-based drafts so the
 // app is fully usable offline.
 
+import { getIntegrations } from "@/lib/credentials";
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -92,35 +94,29 @@ class AnthropicProvider implements LLMProvider {
   }
 }
 
-export function getLLMProvider(): LLMProvider {
-  const provider = (process.env.LLM_PROVIDER || "mock").toLowerCase();
-  if (provider === "openai" && process.env.OPENAI_API_KEY?.trim()) {
-    return new OpenAIProvider(
-      process.env.OPENAI_API_KEY.trim(),
-      process.env.OPENAI_MODEL || "gpt-4o-mini"
-    );
+export async function getLLMProvider(): Promise<LLMProvider> {
+  const c = await getIntegrations();
+  const provider = (c.llmProvider || "mock").toLowerCase();
+  if (provider === "openai" && c.openaiApiKey.trim()) {
+    return new OpenAIProvider(c.openaiApiKey.trim(), c.openaiModel || "gpt-4o-mini");
   }
-  if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY?.trim()) {
-    return new AnthropicProvider(
-      process.env.ANTHROPIC_API_KEY.trim(),
-      process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6"
-    );
+  if (provider === "anthropic" && c.anthropicApiKey.trim()) {
+    return new AnthropicProvider(c.anthropicApiKey.trim(), c.anthropicModel || "claude-sonnet-4-6");
   }
   return new MockLLMProvider();
 }
 
-export function llmStatus(): { configured: boolean; mode: string } {
-  const provider = (process.env.LLM_PROVIDER || "mock").toLowerCase();
-  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY?.trim());
-  const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
-  if (provider === "openai" && hasOpenAI)
-    return { configured: true, mode: "openai" };
-  if (provider === "anthropic" && hasAnthropic)
-    return { configured: true, mode: "anthropic" };
+export async function llmStatus(): Promise<{ configured: boolean; mode: string }> {
+  const c = await getIntegrations();
+  const provider = (c.llmProvider || "mock").toLowerCase();
+  if (provider === "openai" && c.openaiApiKey.trim())
+    return { configured: true, mode: `openai · ${c.openaiModel}` };
+  if (provider === "anthropic" && c.anthropicApiKey.trim())
+    return { configured: true, mode: `anthropic · ${c.anthropicModel}` };
   return { configured: false, mode: "mock" };
 }
 
 // True when a usable real LLM is configured.
-export function llmIsLive(): boolean {
-  return llmStatus().configured;
+export async function llmIsLive(): Promise<boolean> {
+  return (await llmStatus()).configured;
 }
