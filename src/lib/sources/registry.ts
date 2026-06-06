@@ -4,6 +4,8 @@ import { secFormDConnector } from "./secFormD";
 import { irs990Connector } from "./irs990";
 import { usaSpendingConnector } from "./usaSpending";
 import { nppesConnector } from "./nppes";
+import { nihReporterConnector } from "./nihReporter";
+import { openFdaConnector } from "./openFda";
 import { hnHiringConnector } from "./hnHiring";
 import { ycDirectoryConnector } from "./ycDirectory";
 import { genericDirectoryConnector } from "./genericDirectory";
@@ -17,6 +19,8 @@ export const CONNECTORS: SourceConnector[] = [
   irs990Connector,
   usaSpendingConnector,
   nppesConnector,
+  nihReporterConnector,
+  openFdaConnector,
   hnHiringConnector,
   ycDirectoryConnector,
   genericDirectoryConnector,

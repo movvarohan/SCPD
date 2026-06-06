@@ -195,8 +195,9 @@ function sourceLabel(source: string): string {
   const map: Record<string, string> = {
     csv_alumni: "Alumni", csv_generic: "CSV", apollo: "Apollo", clay: "Clay",
     manual: "Manual", sec_edgar: "SEC EDGAR", sec_formd: "SEC Form D", irs_990: "IRS 990",
-    usaspending: "USAspending", nppes: "NPPES Health", hn_hiring: "HN Hiring",
-    yc_directory: "YC Directory", generic_directory: "Scraped Directory",
+    usaspending: "USAspending", nppes: "NPPES Health", nih_reporter: "NIH RePORTER",
+    openfda: "openFDA", hn_hiring: "HN Hiring", yc_directory: "YC Directory",
+    generic_directory: "Scraped Directory",
   };
   return map[source] ?? source;
 }

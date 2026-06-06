@@ -18,6 +18,8 @@ const SOURCE_OPTIONS = [
   { value: "irs_990", label: "IRS 990" },
   { value: "usaspending", label: "USAspending" },
   { value: "nppes", label: "NPPES Health" },
+  { value: "nih_reporter", label: "NIH RePORTER" },
+  { value: "openfda", label: "openFDA" },
   { value: "hn_hiring", label: "HN Hiring" },
   { value: "yc_directory", label: "YC Directory" },
   { value: "generic_directory", label: "Scraped Directory" },
