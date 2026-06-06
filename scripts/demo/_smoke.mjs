@@ -1,0 +1,12 @@
+import { Studio, titleSlide, sectionSlide } from "./studio.mjs";
+const s = new Studio();
+await s.start();
+await s.slide(titleSlide({ title: "SC Sourcing Engine", subtitle: "Smoke test", footer: "Stanford Consulting" }), 1.2);
+await s.goto("/");
+await s.setSection("01", "Dashboard");
+await s.caption("Your pipeline at a glance", "Sourced → drafted → sent → booked");
+await s.hold(1.5);
+await s.slide(sectionSlide({ num: "X", title: "Outro", points: ["It works"] }), 1.2);
+const r = await s.render("/tmp/demo/smoke.mp4");
+console.log("rendered", r, "frames=", s.n);
+await s.stop();
