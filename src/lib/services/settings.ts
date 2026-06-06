@@ -7,6 +7,9 @@ export interface OrgSettings {
   senderSignature: string;
   allowedClaims: string;
   targetIndustries: string[];
+  // CAN-SPAM: a physical mailing address + opt-out line appended at send time.
+  mailingAddress: string;
+  addComplianceFooter: boolean;
 }
 
 export const DEFAULT_SETTINGS: OrgSettings = {
@@ -24,7 +27,22 @@ export const DEFAULT_SETTINGS: OrgSettings = {
     "Climate / Energy",
     "Consumer / Retail",
   ],
+  mailingAddress: "Stanford Consulting, 459 Lagunita Dr, Stanford, CA 94305",
+  addComplianceFooter: true,
 };
+
+// CAN-SPAM footer appended to outbound emails: identifies the sender, gives a
+// physical postal address, and a clear opt-out. Required for lawful cold email.
+export function complianceFooter(s: OrgSettings): string {
+  if (!s.addComplianceFooter) return "";
+  const addr = s.mailingAddress?.trim();
+  return [
+    "",
+    "—",
+    `${s.orgName}${addr ? ` · ${addr}` : ""}`,
+    "Not relevant? Reply with \"unsubscribe\" and we won't contact you again.",
+  ].join("\n");
+}
 
 const SETTINGS_KEY = "org_settings";
 

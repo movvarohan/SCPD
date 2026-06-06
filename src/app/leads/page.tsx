@@ -11,7 +11,7 @@ import { StatusBadge, PriorityBadge, AlumniBadge, ScoreBadge } from "@/component
 import { db } from "@/lib/db";
 import { fullNameOf, bestEmailOf } from "@/lib/utils";
 import { SENIORITY_LABELS } from "@/lib/types";
-import { Linkedin } from "lucide-react";
+import { Linkedin, Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +93,17 @@ export default async function LeadsPage({
       <PageHeader
         title="Lead Database"
         description={`${leads.length} of ${total} leads shown. Click any row for full detail.`}
-        actions={<EnrichButton />}
+        actions={
+          <>
+            <a
+              href="/api/leads/export"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </a>
+            <EnrichButton />
+          </>
+        }
       />
 
       <LeadFilters industries={industries} pds={pds} />

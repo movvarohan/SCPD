@@ -73,6 +73,18 @@ export function SettingsForm({
               <Label>Target industries (comma-separated)</Label>
               <Input value={industries} onChange={(e) => setIndustries(e.target.value)} className="mt-1" />
             </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs font-semibold text-slate-700">CAN-SPAM compliance (cold email)</div>
+              <div className="mt-2">
+                <Label>Physical mailing address (required for lawful cold email)</Label>
+                <Input value={form.mailingAddress} onChange={(e) => set("mailingAddress", e.target.value)} className="mt-1" />
+              </div>
+              <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={form.addComplianceFooter} onChange={(e) => set("addComplianceFooter", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-600" />
+                Append address + opt-out footer to every sent email
+              </label>
+              <p className="mt-1 text-[11px] text-slate-400">Replies containing &quot;unsubscribe&quot;/&quot;stop&quot; are auto-marked Not Interested when you sync replies.</p>
+            </div>
             <Button onClick={save} disabled={pending}><Save className="h-4 w-4" /> Save settings</Button>
           </CardContent>
         </Card>

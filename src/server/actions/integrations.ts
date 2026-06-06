@@ -10,6 +10,7 @@ import {
 import { getLLMProvider } from "@/lib/providers/llm";
 import { getApolloProvider } from "@/lib/providers/apollo";
 import { getEmailProvider } from "@/lib/providers/email";
+import { getOrgSettings, complianceFooter } from "@/lib/services/settings";
 
 // --- Save credentials from the Settings panel ------------------------------
 export async function saveCredentials(overrides: IntegrationOverrides) {
@@ -113,8 +114,13 @@ export async function sendOutreach(
       });
   if (!draft) return { ok: false, message: "No approved/ready draft to send. Approve one in the Review Queue." };
 
+  // Append the CAN-SPAM footer (physical address + opt-out) at send time so it
+  // is always present even if a reviewer edited the draft.
+  const settings = await getOrgSettings();
+  const body = draft.body + complianceFooter(settings);
+
   const provider = await getEmailProvider();
-  const result = await provider.sendEmail(to, draft.subject, draft.body);
+  const result = await provider.sendEmail(to, draft.subject, body);
   if (!result.ok) {
     return { ok: false, message: `Send failed: ${result.error}` };
   }
@@ -163,18 +169,27 @@ export async function syncReplies(): Promise<{ ok: boolean; message: string }> {
   }
 
   let matched = 0;
+  let optOuts = 0;
   for (const reply of replies) {
     const lead = byEmail.get(normalizeEmail(reply.from));
     if (!lead) continue;
-    await db.lead.update({ where: { id: lead.id }, data: { status: "replied" } });
+    // Honor opt-outs (CAN-SPAM) — mark not interested instead of replied.
+    const isOptOut = /unsubscribe|opt[\s-]?out|remove me|stop\b/i.test(`${reply.subject} ${reply.snippet}`);
+    await db.lead.update({
+      where: { id: lead.id },
+      data: { status: isOptOut ? "not_interested" : "replied" },
+    });
     await db.interaction.create({
       data: {
         leadId: lead.id,
         type: "reply",
-        notes: `Reply received from ${reply.from}: "${reply.subject}" (${reply.receivedAt}).`,
+        notes: isOptOut
+          ? `Opt-out received from ${reply.from} — marked not interested. ("${reply.subject}")`
+          : `Reply received from ${reply.from}: "${reply.subject}" (${reply.receivedAt}).`,
       },
     });
     byEmail.delete(normalizeEmail(reply.from)); // count each lead once
+    if (isOptOut) optOuts++;
     matched++;
   }
 
@@ -184,7 +199,7 @@ export async function syncReplies(): Promise<{ ok: boolean; message: string }> {
   return {
     ok: true,
     message: matched > 0
-      ? `Synced ${replies.length} inbox messages — marked ${matched} lead(s) as replied.`
+      ? `Synced ${replies.length} inbox messages — ${matched} matched (${matched - optOuts} replied, ${optOuts} opted out).`
       : `Checked ${replies.length} inbox messages — no new replies matched contacted leads.`,
   };
 }
