@@ -6,6 +6,7 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/page-header";
 import { LeadFilters } from "@/components/lead-filters";
+import { EnrichButton } from "@/components/enrich-button";
 import { StatusBadge, PriorityBadge, AlumniBadge, ScoreBadge } from "@/components/badges";
 import { db } from "@/lib/db";
 import { fullNameOf, bestEmailOf } from "@/lib/utils";
@@ -92,6 +93,7 @@ export default async function LeadsPage({
       <PageHeader
         title="Lead Database"
         description={`${leads.length} of ${total} leads shown. Click any row for full detail.`}
+        actions={<EnrichButton />}
       />
 
       <LeadFilters industries={industries} pds={pds} />
