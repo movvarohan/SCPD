@@ -2,10 +2,13 @@
 
 A self-contained pipeline that records a polished, broadcast-style onboarding
 demo of the SC Sourcing Engine by **driving the live app** with a headless
-browser, overlaying branded captions / section chips / an animated cursor, and
-stitching the frames into an MP4 with ffmpeg.
+browser, overlaying a branded lower-third caption (section eyebrow + title) and
+an animated cursor, and stitching the frames into an MP4 with ffmpeg.
 
-Output: a ~8.5-minute, 1920×1080, H.264 video — `sc-sourcing-engine-demo.mp4`.
+The video is **100% live-app footage with no slides** — it starts at the
+**login screen**, signs in, and tours every page by clicking through the app.
+
+Output: a ~7.5-minute, 1920×1080, H.264 video — `sc-sourcing-engine-demo.mp4`.
 The finished video is committed in this folder
 ([`scripts/demo/sc-sourcing-engine-demo.mp4`](sc-sourcing-engine-demo.mp4)) — a
 full, step-by-step onboarding walkthrough so anyone in SC can follow along.

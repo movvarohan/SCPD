@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { UserSwitcher } from "@/components/user-switcher";
@@ -17,6 +18,20 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = (await headers()).get("x-pathname") || "";
+  const isAuthPage = pathname.startsWith("/login");
+
+  // The login screen renders without the app shell (no sidebar/header).
+  if (isAuthPage) {
+    return (
+      <html lang="en">
+        <body className="font-sans">
+          <ToastProvider>{children}</ToastProvider>
+        </body>
+      </html>
+    );
+  }
+
   const current = await getCurrentUser();
   const users = await db.user.findMany({ orderBy: { role: "asc" } });
 

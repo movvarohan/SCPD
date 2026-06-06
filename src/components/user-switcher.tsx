@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Check } from "lucide-react";
-import { switchUser } from "@/server/actions/auth";
+import { ChevronDown, Check, LogOut } from "lucide-react";
+import { switchUser, signOut } from "@/server/actions/auth";
 import { initialsOf } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,15 @@ export function UserSwitcher({
     startTransition(async () => {
       await switchUser(id);
       setOpen(false);
+      router.refresh();
+    });
+  }
+
+  function doSignOut() {
+    startTransition(async () => {
+      await signOut();
+      setOpen(false);
+      router.push("/login");
       router.refresh();
     });
   }
@@ -93,6 +102,13 @@ export function UserSwitcher({
               {u.id === current.id && <Check className="h-4 w-4 text-cardinal-600" />}
             </button>
           ))}
+          <div className="my-1 border-t border-slate-100" />
+          <button
+            onClick={doSignOut}
+            className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            <LogOut className="h-4 w-4 text-slate-400" /> Sign out
+          </button>
         </div>
       )}
     </div>

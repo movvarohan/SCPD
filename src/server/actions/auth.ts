@@ -14,3 +14,9 @@ export async function switchUser(userId: string) {
   });
   revalidatePath("/", "layout");
 }
+
+export async function signOut() {
+  const store = await cookies();
+  store.delete(AUTH_COOKIE);
+  revalidatePath("/", "layout");
+}

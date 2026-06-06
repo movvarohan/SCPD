@@ -47,6 +47,11 @@ export class Studio {
 
   sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+  async clearCookies() {
+    const client = await this.page.createCDPSession();
+    await client.send("Network.clearBrowserCookies").catch(() => {});
+  }
+
   // ---- overlay (caption bar, section chip, cursor) ----------------------
   async injectOverlay() {
     await this.page.evaluate(({ CARDINAL, SAND }) => {
@@ -56,45 +61,43 @@ export class Studio {
       o.innerHTML = `
         <style>
           #demo-overlay, #demo-overlay * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-          #demo-chip { position: fixed; top: 18px; left: 18px; z-index: 2147483646;
-            display: flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px;
-            background: rgba(15,23,42,.86); color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .2px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.18); backdrop-filter: blur(4px); }
-          #demo-chip .dot { width: 9px; height: 9px; border-radius: 999px; background: ${SAND}; }
-          #demo-chip .num { color: ${SAND}; font-variant-numeric: tabular-nums; }
-          #demo-cap { position: fixed; left: 50%; bottom: 46px; transform: translateX(-50%);
-            z-index: 2147483646; max-width: 1180px; width: max-content;
-            display: flex; align-items: stretch; gap: 0; border-radius: 14px; overflow: hidden;
-            box-shadow: 0 18px 50px rgba(2,6,23,.28); }
-          #demo-cap .accent { width: 8px; background: ${CARDINAL}; }
-          #demo-cap .body { background: rgba(255,255,255,.97); padding: 16px 26px; }
-          #demo-cap .t { color: #0f172a; font-size: 28px; font-weight: 700; line-height: 1.18; letter-spacing: -.2px; }
-          #demo-cap .s { color: #475569; font-size: 18px; margin-top: 4px; font-weight: 500; }
-          #demo-cursor { position: fixed; z-index: 2147483647; left: 0; top: 0; width: 26px; height: 26px;
-            transform: translate(-100px,-100px); transition: transform .18s cubic-bezier(.4,0,.2,1); pointer-events: none;
-            filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+          #demo-cap { position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%) translateY(8px);
+            opacity: 0; transition: opacity .25s ease, transform .25s ease;
+            z-index: 2147483646; max-width: 1240px; width: max-content;
+            display: flex; align-items: stretch; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 24px 60px rgba(2,6,23,.34); }
+          #demo-cap.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+          #demo-cap .accent { width: 7px; background: linear-gradient(${CARDINAL}, #b81b1b); }
+          #demo-cap .body { background: rgba(255,255,255,.98); padding: 17px 30px 18px; backdrop-filter: blur(2px); }
+          #demo-cap .eb { color: ${CARDINAL}; font-size: 13px; font-weight: 800; letter-spacing: 2.2px; text-transform: uppercase; margin-bottom: 5px; }
+          #demo-cap .t { color: #0f172a; font-size: 29px; font-weight: 750; line-height: 1.15; letter-spacing: -.3px; }
+          #demo-cap .s { color: #475569; font-size: 18.5px; margin-top: 5px; font-weight: 500; line-height: 1.35; }
+          #demo-mark { position: fixed; right: 22px; bottom: 22px; z-index: 2147483646;
+            display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px;
+            background: rgba(15,23,42,.55); color: rgba(255,255,255,.92); font-size: 13px; font-weight: 600;
+            letter-spacing: .2px; backdrop-filter: blur(6px); }
+          #demo-mark .b { display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:${CARDINAL};color:#fff;font-size:10px;font-weight:800; }
+          #demo-cursor { position: fixed; z-index: 2147483647; left: 0; top: 0; width: 27px; height: 27px;
+            transform: translate(-100px,-100px); transition: transform .2s cubic-bezier(.4,0,.2,1); pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
           #demo-ring { position: fixed; z-index: 2147483645; width: 12px; height: 12px; border-radius: 999px;
             border: 3px solid ${CARDINAL}; opacity: 0; transform: translate(-100px,-100px) scale(1); pointer-events: none; }
         </style>
-        <div id="demo-chip"><span class="dot"></span><span class="num"></span><span class="lbl"></span></div>
-        <div id="demo-cap"><div class="accent"></div><div class="body"><div class="t"></div><div class="s"></div></div></div>
+        <div id="demo-cap"><div class="accent"></div><div class="body"><div class="eb"></div><div class="t"></div><div class="s"></div></div></div>
+        <div id="demo-mark"><span class="b">SC</span><span>SC Sourcing Engine</span></div>
         <svg id="demo-cursor" viewBox="0 0 24 24" fill="white" stroke="#0f172a" stroke-width="1.4"><path d="M5 3l5.5 16 2.3-6.9L19 9.5z"/></svg>
         <div id="demo-ring"></div>`;
       document.documentElement.appendChild(o);
       window.__demo = {
-        chip(num, lbl) {
-          document.querySelector("#demo-chip .num").textContent = num || "";
-          document.querySelector("#demo-chip .lbl").textContent = lbl || "";
-          document.getElementById("demo-chip").style.display = lbl ? "flex" : "none";
-        },
+        eyebrow(text) { document.querySelector("#demo-cap .eb").textContent = text || ""; document.querySelector("#demo-cap .eb").style.display = text ? "block" : "none"; },
         cap(t, s) {
           document.querySelector("#demo-cap .t").textContent = t || "";
           document.querySelector("#demo-cap .s").textContent = s || "";
-          document.getElementById("demo-cap").style.display = t ? "flex" : "none";
+          const c = document.getElementById("demo-cap");
+          c.classList.toggle("show", Boolean(t));
         },
-        cursor(x, y) {
-          document.getElementById("demo-cursor").style.transform = `translate(${x}px,${y}px)`;
-        },
+        mark(on) { document.getElementById("demo-mark").style.display = on === false ? "none" : "flex"; },
+        cursor(x, y) { document.getElementById("demo-cursor").style.transform = `translate(${x}px,${y}px)`; },
         ring(x, y, on) {
           const r = document.getElementById("demo-ring");
           r.style.transform = `translate(${x - 6}px,${y - 6}px) scale(${on ? 2.6 : 1})`;
@@ -102,17 +105,21 @@ export class Studio {
         },
       };
     }, { CARDINAL, SAND });
-    // restore current section chip + last caption after re-inject
-    if (this.section) await this.page.evaluate((s) => window.__demo.chip(s.num, s.lbl), this.section);
+    // restore section eyebrow after re-inject
+    if (this.section) await this.page.evaluate((lbl) => window.__demo.eyebrow(lbl), this.section);
   }
 
   async setSection(num, lbl) {
-    this.section = { num, lbl };
-    await this.page.evaluate((s) => window.__demo && window.__demo.chip(s.num, s.lbl), this.section);
+    this.section = num && lbl ? `${num} · ${lbl}` : (lbl || num || "");
+    await this.page.evaluate((e) => window.__demo && window.__demo.eyebrow(e), this.section);
   }
 
   async caption(t, s = "") {
     await this.page.evaluate(({ t, s }) => window.__demo && window.__demo.cap(t, s), { t, s });
+  }
+
+  async mark(on) {
+    await this.page.evaluate((v) => window.__demo && window.__demo.mark(v), on);
   }
 
   // ---- frame capture ----------------------------------------------------
@@ -211,11 +218,13 @@ export class Studio {
   async pointAndClickText(text, tag = "button", settleMs = 800) {
     const c = await this.centerText(text, tag);
     if (!c) return false;
+    await this.page.evaluate(() => { const e = document.querySelector('[data-demo-target]'); if (e) e.removeAttribute('data-demo-target'); });
     await this.moveCursorTo(c.x, c.y);
     await this.page.evaluate((p) => window.__demo.ring(p.x, p.y, true), c);
     await this.frame(0.18);
     await this.page.evaluate((p) => window.__demo.ring(p.x, p.y, false), c);
-    await this.page.evaluate(() => { const e = document.querySelector('[data-demo-target]'); if (e) { e.click(); e.removeAttribute('data-demo-target'); } });
+    // Real trusted mouse click — reliably triggers React handlers / server actions.
+    await this.page.mouse.click(c.x, c.y).catch(() => {});
     await this.sleep(settleMs);
     await this.injectOverlay();
     await this.frame(0.3);
