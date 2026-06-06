@@ -7,9 +7,17 @@ This app automates the annoying pre-call work (finding leads, enriching them,
 scoring fit, drafting outreach, tracking replies, assigning calls) while keeping
 **a human in the loop before any email is sent**.
 
-> **Product stance:** This is *not* a fully autonomous emailer. Every outbound
-> draft is routed to a Review Queue and must be explicitly approved. That's a
-> deliberate decision to protect Stanford Consulting's brand.
+> **Product stance:** by default this is *not* a fully autonomous emailer —
+> every outbound draft is routed to a Review Queue and must be explicitly
+> approved, to protect Stanford Consulting's brand.
+>
+> **Optional auto-send:** admins can turn on **rules-based auto-send** in
+> Settings — drafts whose lead matches your criteria (industry, company size,
+> role, minimum score) and passes the guardrails (verified email, no
+> missing-data warnings, a daily cap) go out automatically and skip the queue;
+> everything else still goes to review. It's **off by default** and every
+> auto-send is logged. Use it deliberately: cold email at volume affects
+> deliverability and brand.
 
 ---
 

@@ -62,10 +62,14 @@ export function OutreachGenerator({
         leadIds: Array.from(selected),
         senderName, senderRole, type, goal, tone,
       });
-      toast(`Generated ${res.created} drafts. Sent to the Review Queue.`, "success");
+      if (res.autoSent && res.autoSent > 0) {
+        toast(`Generated ${res.created} drafts — ${res.autoSent} auto-sent, ${res.toReview} to review.`, "success");
+      } else {
+        toast(`Generated ${res.created} drafts. Sent to the Review Queue.`, "success");
+      }
       clear();
       router.refresh();
-      router.push("/review");
+      router.push(res.autoSent && res.autoSent > 0 ? "/tracking" : "/review");
     });
   }
 

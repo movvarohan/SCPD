@@ -1,8 +1,9 @@
 import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
 import { CredentialsPanel } from "@/components/credentials-panel";
+import { AutoSendPanel } from "@/components/autosend-panel";
 import { db } from "@/lib/db";
-import { getOrgSettings } from "@/lib/services/settings";
+import { getOrgSettings, getAutoSendConfig } from "@/lib/services/settings";
 import { getIntegrations } from "@/lib/credentials";
 import { llmStatus } from "@/lib/providers/llm";
 import { apolloStatus } from "@/lib/providers/apollo";
@@ -36,8 +37,8 @@ export default async function SettingsPage() {
     db.emailTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
 
-  const [llm, apollo, clay, email, integ] = await Promise.all([
-    llmStatus(), apolloStatus(), clayStatus(), emailStatus(), getIntegrations(),
+  const [llm, apollo, clay, email, integ, autoSend] = await Promise.all([
+    llmStatus(), apolloStatus(), clayStatus(), emailStatus(), getIntegrations(), getAutoSendConfig(),
   ]);
 
   const credentialsView = {
@@ -87,6 +88,9 @@ export default async function SettingsPage() {
         ]}
         permissions={PERMISSIONS}
       />
+      <div className="mt-4">
+        <AutoSendPanel config={autoSend} emailLive={email.configured} />
+      </div>
       <div className="mt-4">
         <CredentialsPanel view={credentialsView} />
       </div>

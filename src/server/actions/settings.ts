@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { saveOrgSettings, type OrgSettings } from "@/lib/services/settings";
+import { saveOrgSettings, saveAutoSendConfig, type OrgSettings, type AutoSendConfig } from "@/lib/services/settings";
 
 export async function updateOrgSettings(settings: OrgSettings) {
   await saveOrgSettings(settings);
+  revalidatePath("/settings");
+  revalidatePath("/outreach");
+  return { ok: true };
+}
+
+export async function updateAutoSend(cfg: AutoSendConfig) {
+  await saveAutoSendConfig(cfg);
   revalidatePath("/settings");
   revalidatePath("/outreach");
   return { ok: true };

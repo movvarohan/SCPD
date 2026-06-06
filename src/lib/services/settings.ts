@@ -46,6 +46,50 @@ export function complianceFooter(s: OrgSettings): string {
 
 const SETTINGS_KEY = "org_settings";
 
+// ---------------------------------------------------------------------------
+// Auto-send rules
+// ---------------------------------------------------------------------------
+// When enabled, a generated draft whose lead matches ALL set criteria (and
+// passes the guardrails) is sent automatically instead of going to the Review
+// Queue. OFF by default. Empty criteria arrays mean "any".
+export interface AutoSendConfig {
+  enabled: boolean;
+  industries: string[];
+  companySizes: string[];
+  seniorities: string[];
+  minScore: number;
+  requireVerifiedEmail: boolean;
+  skipIfWarnings: boolean;
+  dailyCap: number;
+}
+
+export const DEFAULT_AUTO_SEND: AutoSendConfig = {
+  enabled: false,
+  industries: [],
+  companySizes: [],
+  seniorities: [],
+  minScore: 4,
+  requireVerifiedEmail: true,
+  skipIfWarnings: true,
+  dailyCap: 25,
+};
+
+const AUTO_SEND_KEY = "auto_send";
+
+export async function getAutoSendConfig(): Promise<AutoSendConfig> {
+  const row = await db.setting.findUnique({ where: { key: AUTO_SEND_KEY } });
+  if (!row) return DEFAULT_AUTO_SEND;
+  return { ...DEFAULT_AUTO_SEND, ...decodeJson<Partial<AutoSendConfig>>(row.value, {}) };
+}
+
+export async function saveAutoSendConfig(cfg: AutoSendConfig): Promise<void> {
+  await db.setting.upsert({
+    where: { key: AUTO_SEND_KEY },
+    create: { key: AUTO_SEND_KEY, value: encodeJson(cfg) },
+    update: { value: encodeJson(cfg) },
+  });
+}
+
 export async function getOrgSettings(): Promise<OrgSettings> {
   const row = await db.setting.findUnique({ where: { key: SETTINGS_KEY } });
   if (!row) return DEFAULT_SETTINGS;

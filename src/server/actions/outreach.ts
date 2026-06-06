@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { encodeJson } from "@/lib/serialization";
 import { generateOutreach, type OutreachInput } from "@/lib/services/outreach";
-import { getOrgSettings } from "@/lib/services/settings";
+import { getOrgSettings, getAutoSendConfig, complianceFooter } from "@/lib/services/settings";
+import { autoSendDecision } from "@/lib/services/autosend";
+import { getEmailProvider } from "@/lib/providers/email";
 import { getCurrentUser } from "@/lib/auth";
+import { bestEmailOf } from "@/lib/utils";
 import type { OutreachType } from "@/lib/types";
 
 export interface GenerateParams {
@@ -19,6 +22,8 @@ export interface GenerateParams {
 
 export async function generateDraftsForLeads(params: GenerateParams) {
   const settings = await getOrgSettings();
+  const autoSend = await getAutoSendConfig();
+  const user = await getCurrentUser();
   const leads = await db.lead.findMany({ where: { id: { in: params.leadIds } } });
 
   const input: OutreachInput = {
@@ -33,10 +38,28 @@ export async function generateDraftsForLeads(params: GenerateParams) {
     allowedClaims: settings.allowedClaims,
   };
 
+  // Respect the daily auto-send cap (count today's auto-sends + this run).
+  let autoSentToday = 0;
+  if (autoSend.enabled) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    autoSentToday = await db.interaction.count({
+      where: { type: "email_sent", notes: { contains: "Auto-sent" }, date: { gte: start } },
+    });
+  }
+  const provider = autoSend.enabled ? await getEmailProvider() : null;
+
   let created = 0;
+  let autoSent = 0;
   for (const lead of leads) {
     const out = await generateOutreach(lead, input);
-    await db.outreachDraft.create({
+
+    // Decide: auto-send or route to review?
+    const decision = autoSendDecision(lead, out.warnings, autoSend);
+    const underCap = autoSentToday + autoSent < autoSend.dailyCap;
+    const willAutoSend = decision.send && underCap;
+
+    const draft = await db.outreachDraft.create({
       data: {
         leadId: lead.id,
         type: params.type,
@@ -47,23 +70,41 @@ export async function generateDraftsForLeads(params: GenerateParams) {
         personalizationNote: out.personalizationNote,
         confidenceScore: out.confidenceScore,
         warningsJson: encodeJson(out.warnings),
-        status: "needs_review",
+        status: willAutoSend ? "sent" : "needs_review",
       },
     });
-    // Advance lead lifecycle to needs_review.
-    if (["sourced", "enriched", "drafted"].includes(lead.status)) {
-      await db.lead.update({
-        where: { id: lead.id },
-        data: { status: "needs_review" },
-      });
-    }
     created++;
+
+    if (willAutoSend && provider) {
+      const to = bestEmailOf(lead)!;
+      const body = out.body + complianceFooter(settings);
+      const res = await provider.sendEmail(to, out.subject, body);
+      if (res.ok) {
+        await db.lead.update({ where: { id: lead.id }, data: { status: "sent" } });
+        await db.interaction.create({
+          data: {
+            leadId: lead.id,
+            type: "email_sent",
+            notes: `Auto-sent to ${to} via ${provider.name} (rule: ${decision.reason}). Subject: "${out.subject}".`,
+            createdById: user?.id,
+          },
+        });
+        autoSent++;
+      } else {
+        // Send failed — fall back to review so it isn't lost.
+        await db.outreachDraft.update({ where: { id: draft.id }, data: { status: "needs_review" } });
+        await db.lead.update({ where: { id: lead.id }, data: { status: "needs_review" } });
+      }
+    } else if (["sourced", "enriched", "drafted"].includes(lead.status)) {
+      await db.lead.update({ where: { id: lead.id }, data: { status: "needs_review" } });
+    }
   }
 
   revalidatePath("/review");
   revalidatePath("/leads");
+  revalidatePath("/tracking");
   revalidatePath("/");
-  return { ok: true, created };
+  return { ok: true, created, autoSent, toReview: created - autoSent };
 }
 
 // Regenerate a single existing draft in place.
