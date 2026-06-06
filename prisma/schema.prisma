@@ -96,6 +96,11 @@ model Lead {
   score             Int     @default(0)
   // JSON-encoded ScoreBreakdown (see src/lib/types.ts)
   scoreBreakdownJson String @default("{}")
+
+  // Grounded research (JSON ResearchResult: summary, signals, hook, sources).
+  // Populated by the Research action; fed into outreach generation.
+  researchJson      String   @default("")
+  researchedAt      DateTime?
   // "High" | "Medium" | "Low"
   priority          String  @default("Low")
 

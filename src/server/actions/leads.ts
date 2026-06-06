@@ -7,7 +7,9 @@ import { scoreLead } from "@/lib/services/scoring";
 import { getRuleWeights } from "./scoring";
 import { getCurrentUser } from "@/lib/auth";
 import { domainFromWebsite, enrichEmail, verifyEmail } from "@/lib/services/enrich";
+import { researchLead as runResearch } from "@/lib/services/research";
 import { bestEmailOf } from "@/lib/utils";
+import { encodeJson as enc } from "@/lib/serialization";
 import type { LeadStatus } from "@/lib/types";
 
 export async function updateLead(
@@ -184,6 +186,38 @@ export async function findEmailForLead(id: string): Promise<{ ok: boolean; messa
   revalidatePath(`/leads/${id}`);
   revalidatePath("/leads");
   return { ok: true, message: `${result.source === "hunter" ? "Found" : "Guessed"}: ${result.email} (${result.status})` };
+}
+
+// Run grounded public-presence research (company website + optional web search)
+// for a single lead, storing the result and a personalization hook.
+export async function researchLead(id: string): Promise<{ ok: boolean; message: string }> {
+  const user = await getCurrentUser();
+  const lead = await db.lead.findUnique({ where: { id } });
+  if (!lead) return { ok: false, message: "Lead not found." };
+
+  const result = await runResearch(lead);
+  await db.lead.update({
+    where: { id },
+    data: { researchJson: enc(result), researchedAt: new Date() },
+  });
+  await db.interaction.create({
+    data: {
+      leadId: id,
+      type: "note",
+      notes: result.groundedBy === "none"
+        ? "Research run: no public web text could be fetched."
+        : `Research (${result.groundedBy}) from ${result.sources.length} source(s).${result.hook ? ` Hook: ${result.hook}` : ""}`,
+      createdById: user?.id,
+    },
+  });
+  revalidatePath(`/leads/${id}`);
+  revalidatePath("/leads");
+  return {
+    ok: result.groundedBy !== "none",
+    message: result.groundedBy === "none"
+      ? "No public web text found (no company website on file, or it blocked the fetch)."
+      : `Researched ${result.sources.length} source(s)${result.hook ? ` — hook ready` : ""}.`,
+  };
 }
 
 // Bulk-verify existing unverified emails via Hunter.

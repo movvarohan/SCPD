@@ -58,6 +58,7 @@ export default async function SettingsPage() {
       clay: Boolean(integ.clayApiKey),
       hunter: Boolean(integ.hunterApiKey),
       sam: Boolean(integ.samApiKey),
+      tavily: Boolean(integ.tavilyApiKey),
       gmailPassword: Boolean(integ.gmailAppPassword),
     },
   };
@@ -81,6 +82,7 @@ export default async function SettingsPage() {
           { name: "Apollo (sourcing)", configured: apollo.configured, mode: apollo.mode },
           { name: "Clay (enrichment)", configured: clay.configured, mode: clay.mode },
           { name: "Hunter (email find/verify)", configured: Boolean(integ.hunterApiKey), mode: integ.hunterApiKey ? "hunter" : "pattern guess" },
+          { name: "Research (web search)", configured: Boolean(integ.tavilyApiKey), mode: integ.tavilyApiKey ? "website + Tavily" : "website only" },
           { name: "Email (sending)", configured: email.configured, mode: email.mode },
         ]}
         permissions={PERMISSIONS}

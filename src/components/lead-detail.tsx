@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Save, Linkedin, Globe, Mail, Building2, MapPin,
-  Pencil, MessageSquarePlus, Trash2,
+  Pencil, MessageSquarePlus, Trash2, Telescope, ExternalLink,
 } from "lucide-react";
 import {
   Card, CardHeader, CardTitle, CardContent, Button, Input, Select,
@@ -18,7 +18,7 @@ import {
   WARM_CONNECTION_TYPES, WARM_CONNECTION_LABELS, COMPANY_SIZES,
   type ScoreBreakdown,
 } from "@/lib/types";
-import { updateLead, addInteraction, setLeadStatus, deleteLead, findEmailForLead } from "@/server/actions/leads";
+import { updateLead, addInteraction, setLeadStatus, deleteLead, findEmailForLead, researchLead } from "@/server/actions/leads";
 import { fullNameOf, formatDateTime } from "@/lib/utils";
 
 interface LeadDTO {
@@ -39,11 +39,17 @@ interface DraftDTO {
 }
 interface InteractionDTO { id: string; type: string; notes: string; date: string; by: string | null }
 
+interface ResearchDTO {
+  summary: string; signals: string[]; hook: string;
+  sources: { url: string; title: string }[]; groundedBy: string; at: string;
+}
+
 export function LeadDetail({
-  lead, breakdown, drafts, interactions, assignedPDName,
+  lead, breakdown, research, drafts, interactions, assignedPDName,
 }: {
   lead: LeadDTO;
   breakdown: ScoreBreakdown;
+  research: ResearchDTO | null;
   drafts: DraftDTO[];
   interactions: InteractionDTO[];
   assignedPDName: string | null;
@@ -94,6 +100,14 @@ export function LeadDetail({
     });
   }
 
+  function doResearch() {
+    start(async () => {
+      const res = await researchLead(lead.id);
+      toast(res.message, res.ok ? "success" : "info");
+      router.refresh();
+    });
+  }
+
   function removeLead() {
     if (!confirm("Delete this lead permanently?")) return;
     start(async () => {
@@ -119,6 +133,9 @@ export function LeadDetail({
             </>
           ) : (
             <>
+              <Button variant="outline" size="sm" onClick={doResearch} disabled={pending} title="Research public web presence (company site + news) — never LinkedIn">
+                <Telescope className="h-3.5 w-3.5" /> {research ? "Re-research" : "Research"}
+              </Button>
               <Button variant="outline" size="sm" onClick={findEmail} disabled={pending} title="Find/verify email via Hunter (or guess from domain)">
                 <Mail className="h-3.5 w-3.5" /> {lead.email || lead.workEmail ? "Verify email" : "Find email"}
               </Button>
@@ -230,8 +247,58 @@ export function LeadDetail({
           </Card>
         </div>
 
-        {/* Right: score, timeline, notes */}
+        {/* Right: research, score, timeline, notes */}
         <div className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle><span className="inline-flex items-center gap-1.5"><Telescope className="h-4 w-4 text-cardinal-600" /> Public research</span></CardTitle>
+              <Button variant="ghost" size="sm" onClick={doResearch} disabled={pending}>{research ? "Refresh" : "Run"}</Button>
+            </CardHeader>
+            <CardContent>
+              {!research || research.groundedBy === "none" ? (
+                <p className="text-sm text-slate-400">
+                  No research yet. Click <span className="font-medium text-slate-600">Research</span> to pull grounded signals from the company website (and web news if a search key is set). Never scrapes LinkedIn.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {research.hook && (
+                    <div className="rounded-lg bg-cardinal-50 p-2.5">
+                      <Label>Personalization hook (fed into drafts)</Label>
+                      <p className="mt-0.5 text-sm text-slate-800">{research.hook}</p>
+                    </div>
+                  )}
+                  {research.summary && (
+                    <div>
+                      <Label>Summary</Label>
+                      <p className="mt-0.5 text-sm text-slate-600">{research.summary}</p>
+                    </div>
+                  )}
+                  {research.signals.length > 0 && (
+                    <div>
+                      <Label>Signals</Label>
+                      <ul className="mt-0.5 list-inside list-disc text-sm text-slate-600">
+                        {research.signals.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {research.sources.length > 0 && (
+                    <div>
+                      <Label>Sources ({research.groundedBy})</Label>
+                      <div className="mt-0.5 space-y-0.5">
+                        {research.sources.map((s, i) => (
+                          <a key={i} href={s.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 truncate text-xs text-blue-600 hover:underline">
+                            <ExternalLink className="h-3 w-3 shrink-0" /> {s.title || s.url}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-slate-400">Researched {formatDateTime(research.at)} · grounded, citable, no LinkedIn.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader><CardTitle>Lead score breakdown</CardTitle></CardHeader>
             <CardContent>

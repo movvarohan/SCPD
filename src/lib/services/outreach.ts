@@ -9,6 +9,8 @@ import {
   type OutreachType,
 } from "@/lib/types";
 import { fullNameOf } from "@/lib/utils";
+import { decodeJson } from "@/lib/serialization";
+import type { ResearchResult } from "@/lib/services/research";
 
 export interface OutreachInput {
   senderName: string;
@@ -68,10 +70,13 @@ function reasonForReaching(lead: Lead, input: OutreachInput): string {
 }
 
 // --- Deterministic template generation (mock / offline) --------------------
-function templateGenerate(lead: Lead, input: OutreachInput): GeneratedOutreach {
+function templateGenerate(lead: Lead, input: OutreachInput, research?: ResearchResult | null): GeneratedOutreach {
   const first = lead.firstName || (lead.fullName ? lead.fullName.split(" ")[0] : "there");
   const company = lead.companyName ? ` at ${lead.companyName}` : "";
-  const reason = reasonForReaching(lead, input);
+  // Prefer a grounded research hook as the reason for reaching out when present.
+  const reason = research?.hook
+    ? `because ${research.hook.replace(/^because\s+/i, "").replace(/[.]+$/, "")}`
+    : reasonForReaching(lead, input);
   const goalLabel = OUTREACH_GOAL_LABELS[input.goal] || "a short intro call";
   const ask =
     input.goal === "explore_project"
@@ -123,6 +128,7 @@ function templateGenerate(lead: Lead, input: OutreachInput): GeneratedOutreach {
   ].join("\n");
 
   const personalizationNote = [
+    research?.hook ? `Researched hook: ${research.hook}` : "",
     lead.industry ? `Industry: ${lead.industry}.` : "",
     lead.title ? `Role: ${lead.title}.` : "",
     lead.isStanfordAlum || lead.isSCAlum ? "Alumni connection used as the opener." : "",
@@ -135,6 +141,9 @@ function templateGenerate(lead: Lead, input: OutreachInput): GeneratedOutreach {
     .join(" ");
 
   const warnings = missingDataWarnings(lead);
+  if (!research || research.groundedBy === "none") {
+    warnings.push("No grounded research yet — run Research on the lead for a specific, verifiable hook.");
+  }
 
   return {
     subject: subjectMap[input.type] || subjectMap.cold_high_fit,
@@ -148,7 +157,7 @@ function templateGenerate(lead: Lead, input: OutreachInput): GeneratedOutreach {
 }
 
 // --- LLM generation (when a real provider is configured) -------------------
-async function llmGenerate(lead: Lead, input: OutreachInput): Promise<GeneratedOutreach> {
+async function llmGenerate(lead: Lead, input: OutreachInput, research?: ResearchResult | null): Promise<GeneratedOutreach> {
   const llm = await getLLMProvider();
   const facts = {
     name: fullNameOf(lead),
@@ -164,9 +173,16 @@ async function llmGenerate(lead: Lead, input: OutreachInput): Promise<GeneratedO
     warmConnectionNotes: lead.warmConnectionNotes,
   };
 
-  const userPrompt = `Generate outreach for this lead. Use ONLY these facts (omit anything missing, never invent):
-${JSON.stringify(facts, null, 2)}
+  const researchBlock = research && research.groundedBy !== "none"
+    ? `\nGROUNDED RESEARCH (from the company's public website/news — you MAY reference ONE specific detail from here, but do not exaggerate or invent beyond it):
+- Summary: ${research.summary || "n/a"}
+- Signals: ${research.signals.length ? research.signals.join("; ") : "none"}
+- Suggested hook: ${research.hook || "none"}\n`
+    : "\nGROUNDED RESEARCH: none available — do not fabricate any company-specific detail.\n";
 
+  const userPrompt = `Generate outreach for this lead. Use ONLY these facts + the grounded research (omit anything missing, never invent):
+${JSON.stringify(facts, null, 2)}
+${researchBlock}
 Sender: ${input.senderName}, ${input.senderRole}
 Organization: ${input.orgName} — ${input.orgDescription}
 Allowed claims about the org (do not exceed these): ${input.allowedClaims || "none beyond the description"}
@@ -205,7 +221,7 @@ Return STRICT JSON with this exact shape:
     return { ...parsed, warnings };
   } catch {
     // If the model returns malformed JSON, fall back to templates.
-    return templateGenerate(lead, input);
+    return templateGenerate(lead, input, research);
   }
 }
 
@@ -213,13 +229,19 @@ export async function generateOutreach(
   lead: Lead,
   input: OutreachInput
 ): Promise<GeneratedOutreach> {
+  // Decode any grounded research stored on the lead and feed it in.
+  const research = decodeJson<ResearchResult | null>(
+    (lead as Lead & { researchJson?: string }).researchJson ?? "",
+    null
+  );
+
   if (await llmIsLive()) {
     try {
-      return await llmGenerate(lead, input);
+      return await llmGenerate(lead, input, research);
     } catch (err) {
       // If the live LLM call fails (rate limit, network), fall back to templates
       // with a warning rather than failing the whole generation.
-      const base = templateGenerate(lead, input);
+      const base = templateGenerate(lead, input, research);
       return {
         ...base,
         warnings: [
@@ -229,5 +251,5 @@ export async function generateOutreach(
       };
     }
   }
-  return templateGenerate(lead, input);
+  return templateGenerate(lead, input, research);
 }

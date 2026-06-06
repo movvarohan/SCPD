@@ -23,6 +23,7 @@ export interface Integrations {
   clayApiKey: string;
   hunterApiKey: string;
   samApiKey: string;
+  tavilyApiKey: string;
 
   emailProvider: "mock" | "gmail_smtp" | "smartlead";
   gmailUser: string;
@@ -48,6 +49,7 @@ function fromEnv(): Integrations {
     clayApiKey: process.env.CLAY_API_KEY || "",
     hunterApiKey: process.env.HUNTER_API_KEY || "",
     samApiKey: process.env.SAM_API_KEY || "",
+    tavilyApiKey: process.env.TAVILY_API_KEY || "",
     emailProvider: (process.env.EMAIL_PROVIDER as Integrations["emailProvider"]) || "mock",
     gmailUser: process.env.GMAIL_USER || "",
     gmailAppPassword: process.env.GMAIL_APP_PASSWORD || "",

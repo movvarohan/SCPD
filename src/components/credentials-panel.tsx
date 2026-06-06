@@ -23,7 +23,7 @@ export interface CredentialsView {
   imapHost: string;
   imapPort: number;
   mailFromName: string;
-  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; gmailPassword: boolean };
+  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; tavily: boolean; gmailPassword: boolean };
 }
 
 type TestState = { ok: boolean; message: string } | "loading" | null;
@@ -40,6 +40,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
   const [apolloKey, setApolloKey] = React.useState("");
   const [hunterKey, setHunterKey] = React.useState("");
   const [samKey, setSamKey] = React.useState("");
+  const [tavilyKey, setTavilyKey] = React.useState("");
   const [emailProvider, setEmailProvider] = React.useState(view.emailProvider);
   const [gmailUser, setGmailUser] = React.useState(view.gmailUser);
   const [gmailPassword, setGmailPassword] = React.useState("");
@@ -65,6 +66,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         apolloApiKey: apolloKey,
         hunterApiKey: hunterKey,
         samApiKey: samKey,
+        tavilyApiKey: tavilyKey,
         emailProvider: emailProvider as never,
         gmailUser,
         gmailAppPassword: gmailPassword,
@@ -73,7 +75,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         mailFromName,
       });
       // Clear secret inputs after save (they're persisted server-side).
-      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setGmailPassword("");
+      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setTavilyKey(""); setGmailPassword("");
       toast("Credentials saved.", "success");
       router.refresh();
       after?.();
@@ -167,6 +169,11 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
             <Label>Hunter API key {view.has.hunter && <SetTag />}</Label>
             <Input type="password" value={hunterKey} onChange={(e) => setHunterKey(e.target.value)} placeholder={view.has.hunter ? "•••• saved" : "Hunter.io key (free tier)"} className="mt-1 max-w-md" />
             <p className="mt-1 text-xs text-slate-500">With a key, &quot;Enrich missing emails&quot; finds + verifies real emails. Without one, it falls back to pattern guesses (unverified).</p>
+          </div>
+          <div>
+            <Label>Tavily web-search key (lead research) {view.has.tavily && <SetTag />}</Label>
+            <Input type="password" value={tavilyKey} onChange={(e) => setTavilyKey(e.target.value)} placeholder={view.has.tavily ? "•••• saved" : "Tavily key — optional, adds news/funding to research"} className="mt-1 max-w-md" />
+            <p className="mt-1 text-xs text-slate-500">Research always reads the company website (no key needed). A Tavily key adds public news/funding signals. LinkedIn is never scraped.</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => runTest(testHunter, setHunterTest)} disabled={pending}>
             <Plug className="h-3.5 w-3.5" /> Save & test Hunter

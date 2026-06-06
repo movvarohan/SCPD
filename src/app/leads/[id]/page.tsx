@@ -27,6 +27,11 @@ export default async function LeadDetailPage({
     decodeJson<ScoreBreakdown | null>(lead.scoreBreakdownJson, null) ??
     scoreLead(lead);
 
+  const research = decodeJson<{
+    summary: string; signals: string[]; hook: string;
+    sources: { url: string; title: string }[]; groundedBy: string; at: string;
+  } | null>(lead.researchJson, null);
+
   return (
     <LeadDetail
       lead={{
@@ -35,6 +40,7 @@ export default async function LeadDetailPage({
         updatedAt: lead.updatedAt.toISOString(),
       }}
       breakdown={breakdown}
+      research={research}
       assignedPDName={lead.assignedPD?.name ?? null}
       drafts={lead.drafts.map((d) => ({
         id: d.id, type: d.type, subject: d.subject, body: d.body,
