@@ -6,7 +6,7 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/page-header";
 import { LeadFilters } from "@/components/lead-filters";
-import { EnrichButton } from "@/components/enrich-button";
+import { EnrichButton, VerifyEmailsButton } from "@/components/enrich-button";
 import { StatusBadge, PriorityBadge, AlumniBadge, ScoreBadge } from "@/components/badges";
 import { db } from "@/lib/db";
 import { fullNameOf, bestEmailOf } from "@/lib/utils";
@@ -102,6 +102,7 @@ export default async function LeadsPage({
               <Download className="h-3.5 w-3.5" /> Export CSV
             </a>
             <EnrichButton />
+            <VerifyEmailsButton />
           </>
         }
       />
@@ -206,8 +207,8 @@ function sourceLabel(source: string): string {
     csv_alumni: "Alumni", csv_generic: "CSV", apollo: "Apollo", clay: "Clay",
     manual: "Manual", sec_edgar: "SEC EDGAR", sec_formd: "SEC Form D", irs_990: "IRS 990",
     usaspending: "USAspending", nppes: "NPPES Health", nih_reporter: "NIH RePORTER",
-    openfda: "openFDA", hn_hiring: "HN Hiring", yc_directory: "YC Directory",
-    generic_directory: "Scraped Directory",
+    openfda: "openFDA", gleif: "GLEIF Registry", sam_gov: "SAM.gov",
+    hn_hiring: "HN Hiring", yc_directory: "YC Directory", generic_directory: "Scraped Directory",
   };
   return map[source] ?? source;
 }

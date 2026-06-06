@@ -18,7 +18,7 @@ import {
   WARM_CONNECTION_TYPES, WARM_CONNECTION_LABELS, COMPANY_SIZES,
   type ScoreBreakdown,
 } from "@/lib/types";
-import { updateLead, addInteraction, setLeadStatus, deleteLead } from "@/server/actions/leads";
+import { updateLead, addInteraction, setLeadStatus, deleteLead, findEmailForLead } from "@/server/actions/leads";
 import { fullNameOf, formatDateTime } from "@/lib/utils";
 
 interface LeadDTO {
@@ -86,6 +86,14 @@ export function LeadDetail({
     });
   }
 
+  function findEmail() {
+    start(async () => {
+      const res = await findEmailForLead(lead.id);
+      toast(res.message, res.ok ? "success" : "error");
+      router.refresh();
+    });
+  }
+
   function removeLead() {
     if (!confirm("Delete this lead permanently?")) return;
     start(async () => {
@@ -111,6 +119,9 @@ export function LeadDetail({
             </>
           ) : (
             <>
+              <Button variant="outline" size="sm" onClick={findEmail} disabled={pending} title="Find/verify email via Hunter (or guess from domain)">
+                <Mail className="h-3.5 w-3.5" /> {lead.email || lead.workEmail ? "Verify email" : "Find email"}
+              </Button>
               <Button variant="danger" size="sm" onClick={removeLead}><Trash2 className="h-3.5 w-3.5" /></Button>
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit

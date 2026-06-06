@@ -57,6 +57,7 @@ export default async function SettingsPage() {
       apollo: Boolean(integ.apolloApiKey),
       clay: Boolean(integ.clayApiKey),
       hunter: Boolean(integ.hunterApiKey),
+      sam: Boolean(integ.samApiKey),
       gmailPassword: Boolean(integ.gmailAppPassword),
     },
   };

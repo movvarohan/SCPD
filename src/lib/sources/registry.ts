@@ -6,6 +6,8 @@ import { usaSpendingConnector } from "./usaSpending";
 import { nppesConnector } from "./nppes";
 import { nihReporterConnector } from "./nihReporter";
 import { openFdaConnector } from "./openFda";
+import { gleifConnector } from "./gleif";
+import { samGovConnector } from "./samGov";
 import { hnHiringConnector } from "./hnHiring";
 import { ycDirectoryConnector } from "./ycDirectory";
 import { genericDirectoryConnector } from "./genericDirectory";
@@ -21,6 +23,8 @@ export const CONNECTORS: SourceConnector[] = [
   nppesConnector,
   nihReporterConnector,
   openFdaConnector,
+  gleifConnector,
+  samGovConnector,
   hnHiringConnector,
   ycDirectoryConnector,
   genericDirectoryConnector,

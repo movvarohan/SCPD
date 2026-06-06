@@ -23,7 +23,7 @@ export interface CredentialsView {
   imapHost: string;
   imapPort: number;
   mailFromName: string;
-  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; gmailPassword: boolean };
+  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; gmailPassword: boolean };
 }
 
 type TestState = { ok: boolean; message: string } | "loading" | null;
@@ -39,6 +39,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
   const [openaiKey, setOpenaiKey] = React.useState("");
   const [apolloKey, setApolloKey] = React.useState("");
   const [hunterKey, setHunterKey] = React.useState("");
+  const [samKey, setSamKey] = React.useState("");
   const [emailProvider, setEmailProvider] = React.useState(view.emailProvider);
   const [gmailUser, setGmailUser] = React.useState(view.gmailUser);
   const [gmailPassword, setGmailPassword] = React.useState("");
@@ -63,6 +64,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         openaiModel: view.openaiModel,
         apolloApiKey: apolloKey,
         hunterApiKey: hunterKey,
+        samApiKey: samKey,
         emailProvider: emailProvider as never,
         gmailUser,
         gmailAppPassword: gmailPassword,
@@ -71,7 +73,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         mailFromName,
       });
       // Clear secret inputs after save (they're persisted server-side).
-      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setGmailPassword("");
+      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setGmailPassword("");
       toast("Credentials saved.", "success");
       router.refresh();
       after?.();
@@ -140,9 +142,15 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
             <h4 className="text-sm font-semibold text-slate-800">Apollo — lead sourcing</h4>
             <TestBadge state={apolloTest} />
           </div>
-          <div>
-            <Label>Apollo API key {view.has.apollo && <SetTag />}</Label>
-            <Input type="password" value={apolloKey} onChange={(e) => setApolloKey(e.target.value)} placeholder={view.has.apollo ? "•••• saved" : "Apollo key"} className="mt-1 max-w-md" />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div>
+              <Label>Apollo API key {view.has.apollo && <SetTag />}</Label>
+              <Input type="password" value={apolloKey} onChange={(e) => setApolloKey(e.target.value)} placeholder={view.has.apollo ? "•••• saved" : "Apollo key"} className="mt-1" />
+            </div>
+            <div>
+              <Label>SAM.gov API key {view.has.sam && <SetTag />}</Label>
+              <Input type="password" value={samKey} onChange={(e) => setSamKey(e.target.value)} placeholder={view.has.sam ? "•••• saved" : "SAM.gov key (federal registrants connector)"} className="mt-1" />
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => runTest(testApollo, setApolloTest)} disabled={pending}>
             <Plug className="h-3.5 w-3.5" /> Save & test Apollo

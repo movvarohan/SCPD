@@ -6,7 +6,8 @@ import { encodeJson } from "@/lib/serialization";
 import { scoreLead } from "@/lib/services/scoring";
 import { getRuleWeights } from "./scoring";
 import { getCurrentUser } from "@/lib/auth";
-import { domainFromWebsite, enrichEmail } from "@/lib/services/enrich";
+import { domainFromWebsite, enrichEmail, verifyEmail } from "@/lib/services/enrich";
+import { bestEmailOf } from "@/lib/utils";
 import type { LeadStatus } from "@/lib/types";
 
 export async function updateLead(
@@ -147,4 +148,62 @@ export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: num
   revalidatePath("/leads");
   revalidatePath("/");
   return { ok: true, updated, skipped, verified };
+}
+
+// Find (or verify) the email for a single lead — used on the detail page.
+export async function findEmailForLead(id: string): Promise<{ ok: boolean; message: string }> {
+  const user = await getCurrentUser();
+  const lead = await db.lead.findUnique({ where: { id } });
+  if (!lead) return { ok: false, message: "Lead not found." };
+
+  const existing = bestEmailOf(lead);
+  if (existing && !lead.verifiedEmail) {
+    // Already has an email — verify it instead.
+    const v = await verifyEmail(existing);
+    await db.lead.update({ where: { id }, data: { verifiedEmail: v.verified } });
+    await db.interaction.create({
+      data: { leadId: id, type: "note", notes: `Email verification: ${existing} → ${v.status}.`, createdById: user?.id },
+    });
+    revalidatePath(`/leads/${id}`);
+    revalidatePath("/leads");
+    return { ok: true, message: `Verification: ${v.status}` };
+  }
+
+  const domain = domainFromWebsite(lead.companyWebsite);
+  if (!domain) return { ok: false, message: "No company website/domain to derive an email from. Add one first." };
+  const result = await enrichEmail(lead.firstName, lead.lastName, domain);
+  if (!result) return { ok: false, message: "Need a first + last name (and a domain) to find an email." };
+
+  await db.lead.update({
+    where: { id },
+    data: { email: result.email, workEmail: result.email, verifiedEmail: result.verified },
+  });
+  await db.interaction.create({
+    data: { leadId: id, type: "note", notes: `Email ${result.source === "hunter" ? "found via Hunter" : "guessed"}: ${result.email} (${result.status}).`, createdById: user?.id },
+  });
+  revalidatePath(`/leads/${id}`);
+  revalidatePath("/leads");
+  return { ok: true, message: `${result.source === "hunter" ? "Found" : "Guessed"}: ${result.email} (${result.status})` };
+}
+
+// Bulk-verify existing unverified emails via Hunter.
+export async function verifyExistingEmails(): Promise<{ ok: boolean; verified: number; checked: number }> {
+  const candidates = await db.lead.findMany({
+    where: { verifiedEmail: false, OR: [{ email: { not: null } }, { workEmail: { not: null } }] },
+    take: 100,
+  });
+  let verified = 0;
+  let checked = 0;
+  for (const lead of candidates) {
+    const email = bestEmailOf(lead);
+    if (!email) continue;
+    checked++;
+    const v = await verifyEmail(email);
+    if (v.verified) {
+      await db.lead.update({ where: { id: lead.id }, data: { verifiedEmail: true } });
+      verified++;
+    }
+  }
+  revalidatePath("/leads");
+  return { ok: true, verified, checked };
 }

@@ -20,6 +20,8 @@ const SOURCE_OPTIONS = [
   { value: "nppes", label: "NPPES Health" },
   { value: "nih_reporter", label: "NIH RePORTER" },
   { value: "openfda", label: "openFDA" },
+  { value: "gleif", label: "GLEIF Registry" },
+  { value: "sam_gov", label: "SAM.gov" },
   { value: "hn_hiring", label: "HN Hiring" },
   { value: "yc_directory", label: "YC Directory" },
   { value: "generic_directory", label: "Scraped Directory" },
