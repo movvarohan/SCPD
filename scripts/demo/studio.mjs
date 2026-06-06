@@ -27,8 +27,9 @@ export class Studio {
     fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
     fs.mkdirSync(FRAMES_DIR, { recursive: true });
     this.browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ignore-certificate-errors", "--force-color-profile=srgb", "--hide-scrollbars"],
-      defaultViewport: { width: W, height: H, deviceScaleFactor: 1 },
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ignore-certificate-errors", "--force-color-profile=srgb", "--hide-scrollbars", "--font-render-hinting=none"],
+      // Render at 2x and downscale on encode (supersampling) for crisp text.
+      defaultViewport: { width: W, height: H, deviceScaleFactor: 2 },
     });
     this.page = await this.browser.newPage();
     this.page.setDefaultTimeout(45000);
@@ -191,6 +192,20 @@ export class Studio {
     await this.injectOverlay();
   }
 
+  // Smoothly scroll to y, capturing motion frames so the scroll reads as motion.
+  async scrollMotion(y, steps = 7) {
+    const from = await this.page.evaluate(() => window.scrollY);
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
+      const yy = Math.round(from + (y - from) * eased);
+      await this.page.evaluate((v) => window.scrollTo(0, v), yy);
+      await this.injectOverlay();
+      await this.frame(0.05);
+    }
+    await this.sleep(120);
+  }
+
   // Find the on-screen center of the first visible element matching text.
   async centerText(text, tag = "*") {
     return this.page.evaluate(({ text, tag }) => {
@@ -251,10 +266,18 @@ export class Studio {
     fs.writeFileSync(listPath, list);
 
     const total = this.manifest.reduce((a, m) => a + m.duration, 0);
+    const fadeOut = Math.max(0, total - 1.0);
+    // Supersample (2x frames -> 1920x1080, lanczos) + cinematic in/out fades.
+    const vf = [
+      `fps=${fps}`,
+      `scale=${W}:${H}:flags=lanczos`,
+      `fade=t=in:st=0:d=0.7`,
+      `fade=t=out:st=${fadeOut.toFixed(2)}:d=1.0`,
+    ].join(",");
     const args = [
       "-y", "-f", "concat", "-safe", "0", "-i", listPath,
-      "-vf", `fps=${fps}`,
-      "-c:v", "libx264", "-profile:v", "high", "-preset", "medium", "-crf", "20",
+      "-vf", vf,
+      "-c:v", "libx264", "-profile:v", "high", "-preset", "slow", "-crf", "19",
       "-pix_fmt", "yuv420p", "-movflags", "+faststart",
       outPath,
     ];

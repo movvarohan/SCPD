@@ -41,9 +41,9 @@ try {
   await cap("You're in — this is the Dashboard", "Your whole pipeline at a glance, the moment you sign in.", 5.4);
   await cap("Read the funnel left to right", "Total leads → high-priority → drafted → pending review → sent → replies → booked.", 6);
   await cap("Two rates that matter", "Reply rate and booked-call conversion show you what's working.", 5.2);
-  await tryx(() => s.scrollTo(400, 750));
+  await tryx(() => s.scrollMotion(400));
   await cap("Charts update live", "Pipeline by status, leads by priority, and where your leads came from.", 5.6);
-  await tryx(() => s.scrollTo(0, 500));
+  await tryx(() => s.scrollMotion(0));
   await cap("Navigate from the sidebar", "Everything is one click away on the left. Let's start by importing contacts.", 5.6);
 
   // ===================== 02 IMPORT =====================
@@ -61,7 +61,7 @@ try {
   if (uploaded) {
     await step("Upload the CSV", "Columns are auto-detected — even messy ones like “Current Company”.", 5.6);
     await step("Check the column mapping", "Each column maps to a field; fix anything with the dropdowns.", 5.8);
-    await tryx(() => s.scrollTo(520, 750));
+    await tryx(() => s.scrollMotion(520));
     await step("Preview every row", "See exactly what imports, with a validation check on each one.", 5.6);
     await cap("Duplicates are caught for you", "Matched on email, LinkedIn, and name + company — no double entries.", 5.6);
     await tryx(() => s.pointAndClickText("Import", "button"));
@@ -76,11 +76,11 @@ try {
   reset();
   await step("Describe who you want", "Target industries, titles, seniority, company size, and location.", 6);
   await step("Choose a count & source", "Leads are deduped and scored automatically as they come in.", 5.6);
-  await tryx(() => s.scrollTo(580, 750));
+  await tryx(() => s.scrollMotion(580));
   await cap("Or pull from public data", "Twelve connectors most teams never touch.", 5.2);
   await step("Pick a public source", "SEC filings, IRS 990s, NPPES health, NIH, openFDA, USAspending, GLEIF, YC…", 6.5);
   await cap("Real companies & named execs", "The leads nobody else is emailing — higher reply rates.", 5.4);
-  await tryx(() => s.scrollTo(0, 500));
+  await tryx(() => s.scrollMotion(0));
 
   // ===================== 04 LEADS =====================
   await nav("Leads", "04", "Lead Database");
@@ -100,9 +100,9 @@ try {
   reset();
   await cap(`${state.researchedName} — ${state.researchedCompany}`, "One lead: person, company, score, research, drafts, and a full timeline.", 6);
   await step("Edit any field", "Click Edit to fix a title, email, or company — the score recalculates instantly.", 5.6);
-  await tryx(() => s.scrollTo(680, 760));
+  await tryx(() => s.scrollMotion(680));
   await step("See the score, fully explained", "Every point is justified — alumni, seniority, fit, verified email, signals.", 6.5);
-  await tryx(() => s.scrollTo(120, 760));
+  await tryx(() => s.scrollMotion(120));
   await cap("Now the standout — Research", "Click Research to study the lead's public presence.", 5.2);
   await step("Grounded research, never LinkedIn", "It reads the company's own website and public news — not LinkedIn.", 6.2);
   await cap("A real, citable hook", "One specific, true detail — with sources you can click and verify.", 6);
@@ -132,11 +132,11 @@ try {
   reset();
   await cap("The human approval gate", "This is what protects Stanford Consulting's name. Nothing skips it.", 5.8);
   await step("Read the context", "Each card shows why the lead was chosen, the personalization, and warnings.", 6);
-  await tryx(() => s.scrollTo(240, 700));
+  await tryx(() => s.scrollMotion(240));
   await step("Edit the draft if needed", "Tweak the subject or body right inside the card.", 5);
   await tryx(() => s.pointToText("Approve", "button"));
   await step("Approve, regenerate, or reject", "“Approve & send” delivers it as your own inbox. Or send later from Tracking.", 6.5);
-  await tryx(() => s.scrollTo(0, 500));
+  await tryx(() => s.scrollMotion(0));
 
   // ===================== 08 TRACKING =====================
   await nav("Sending & Tracking", "08", "Sending & Tracking");
@@ -163,10 +163,10 @@ try {
   await nav("Settings", "11", "Settings & Keys");
   reset();
   await step("Set your org & guardrails", "Org name, the claims you allow, the signature, and email templates.", 6);
-  await tryx(() => s.scrollTo(740, 760));
+  await tryx(() => s.scrollMotion(740));
   await step("Connect your keys", "Anthropic, Apollo, Hunter, Tavily, SAM.gov — each with “Save & test”.", 6.5);
   await step("Connect Gmail to send for real", "Add a Gmail app password — emails send as you, replies come back to you.", 6.5);
-  await tryx(() => s.scrollTo(0, 500));
+  await tryx(() => s.scrollMotion(0));
 
   // ===================== CLOSE (back to Dashboard) =====================
   await nav("Dashboard", "—", "That's the tour");
