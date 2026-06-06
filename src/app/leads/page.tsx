@@ -191,7 +191,8 @@ export default async function LeadsPage({
 
 function sourceLabel(source: string): string {
   const map: Record<string, string> = {
-    csv_alumni: "Alumni", csv_generic: "CSV", apollo: "Apollo", clay: "Clay", manual: "Manual",
+    csv_alumni: "Alumni", csv_generic: "CSV", apollo: "Apollo", clay: "Clay",
+    manual: "Manual", sec_edgar: "SEC EDGAR",
   };
   return map[source] ?? source;
 }

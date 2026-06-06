@@ -1,5 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { SourceForm } from "@/components/source-form";
+import { ConnectorPanel } from "@/components/connector-panel";
+import { listConnectors } from "@/lib/sources/registry";
 import { apolloStatus } from "@/lib/providers/apollo";
 import { clayStatus } from "@/lib/providers/clay";
 import { getCurrentUser, can } from "@/lib/auth";
@@ -11,6 +13,7 @@ export default async function SourcePage() {
   const allowed = can(user, "source");
   const apollo = await apolloStatus();
   const clay = await clayStatus();
+  const connectors = listConnectors();
 
   return (
     <div>
@@ -24,6 +27,9 @@ export default async function SourcePage() {
         </div>
       )}
       <SourceForm apolloMode={apollo.mode} clayMode={clay.mode} />
+      <div className="mt-4">
+        <ConnectorPanel connectors={connectors} />
+      </div>
     </div>
   );
 }

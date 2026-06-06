@@ -13,6 +13,7 @@ const SOURCE_OPTIONS = [
   { value: "csv_generic", label: "Lead CSV" },
   { value: "apollo", label: "Apollo" },
   { value: "clay", label: "Clay" },
+  { value: "sec_edgar", label: "SEC EDGAR" },
   { value: "manual", label: "Manual" },
 ];
 
