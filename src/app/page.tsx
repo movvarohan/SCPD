@@ -15,33 +15,22 @@ import { StatusBadge, PriorityBadge } from "@/components/badges";
 export const dynamic = "force-dynamic";
 
 function Stat({
-  label, value, icon: Icon, href, tone = "slate", hint,
+  label, value, icon: Icon, href, hint,
 }: {
   label: string; value: string | number; icon: React.ElementType;
   href?: string; tone?: string; hint?: string;
 }) {
-  const toneMap: Record<string, string> = {
-    slate: "text-slate-500 bg-slate-100",
-    cardinal: "text-cardinal-700 bg-cardinal-50",
-    amber: "text-amber-700 bg-amber-50",
-    green: "text-emerald-700 bg-emerald-50",
-    blue: "text-blue-700 bg-blue-50",
-  };
   const body = (
-    <Card className="transition-shadow hover:shadow-md">
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${toneMap[tone]}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-2xl font-semibold tabular-nums text-slate-900">{value}</div>
-          <div className="truncate text-xs font-medium text-slate-500">{label}</div>
-          {hint && <div className="text-[11px] text-slate-400">{hint}</div>}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="group h-full rounded-lg border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-slate-300">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</span>
+        <Icon className="h-4 w-4 text-slate-300 transition-colors group-hover:text-slate-400" />
+      </div>
+      <div className="mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums text-slate-900">{value}</div>
+      {hint && <div className="mt-1.5 text-[11px] text-slate-400">{hint}</div>}
+    </div>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
+  return href ? <Link href={href} className="block h-full">{body}</Link> : body;
 }
 
 export default async function DashboardPage() {

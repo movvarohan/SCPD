@@ -42,16 +42,14 @@ export default async function RootLayout({
           <div className="flex h-screen overflow-hidden">
             <Sidebar role={current?.role ?? "PD"} />
             <div className="flex flex-1 flex-col overflow-hidden">
-              <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
+              <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-sm">
                 <div className="md:hidden flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cardinal-600 text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cardinal-700 text-xs font-bold text-white">
                     SC
                   </div>
                   <span className="text-sm font-semibold">Sourcing Engine</span>
                 </div>
-                <div className="hidden text-sm text-slate-500 md:block">
-                  Find leads · enrich · score · draft · review · assign
-                </div>
+                <div className="hidden md:block" />
                 {current && (
                   <UserSwitcher
                     users={users.map((u) => ({
