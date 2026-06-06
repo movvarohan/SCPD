@@ -129,10 +129,28 @@ All keys live in `.env` (see `.env.example`). **None are required** to run local
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | LLM email generation | empty |
 | `APOLLO_API_KEY` | People search/enrichment | empty (mock) |
 | `CLAY_API_KEY` / `CLAY_WORKFLOW_URL` | Enrichment workflows | empty (mock) |
-| `EMAIL_PROVIDER` | `mock` \| `gmail` \| `smartlead` | `mock` |
-| `GMAIL_*` / `SMARTLEAD_API_KEY` | Sending (stubbed) | empty |
+| `HUNTER_API_KEY` | Email find + verify (enrichment) | empty (pattern guess) |
+| `EMAIL_PROVIDER` | `mock` \| `gmail_smtp` \| `smartlead` | `mock` |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | Send as your Gmail + read replies (IMAP) | empty |
 
-The **Settings** page shows live status for each provider.
+Keys can also be pasted in the **Settings → API keys & mailbox** panel (stored in
+the DB, overriding `.env`), each with a **Save & test** button. The Settings page
+shows live status for every provider.
+
+> **Note on the cloud sandbox:** HTTPS APIs (Anthropic, Apollo, Hunter, and all
+> the public-source connectors) work anywhere. Gmail SMTP/IMAP and the Playwright
+> scrapers need open ports / cert validation, so run those on your own machine.
+
+### Connecting your inbox (Gmail)
+
+1. Turn on 2-Step Verification, then create an **App Password** at
+   [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+2. In **Settings → API keys & mailbox**, set `EMAIL_PROVIDER` to Gmail, enter your
+   address + the 16-char password, and **Save & test mailbox**.
+3. Approve a draft → **Approve & send** (Review Queue) or **Send** (Tracking).
+   Emails send *as you*; replies land in your inbox and sync back via **Sync
+   replies**. A CAN-SPAM footer (address + opt-out) is appended at send time, and
+   "unsubscribe" replies auto-mark a lead Not Interested.
 
 ---
 
@@ -150,9 +168,51 @@ flip the factory:
 | Email | [`src/lib/providers/email.ts`](src/lib/providers/email.ts) | `sendEmail`, `scheduleFollowUp`, `getReplies`, `syncStatus` |
 
 The LLM outreach generator already works with real keys today — set
-`LLM_PROVIDER=openai` (or `anthropic`) and provide a key. The strong system
+`LLM_PROVIDER=anthropic` (or `openai`) and provide a key. The strong system
 prompt that forbids fabricated facts lives in `OUTREACH_SYSTEM_PROMPT` in
 `src/lib/providers/llm.ts`.
+
+---
+
+## Public-source connectors
+
+Beyond Apollo/CSV, the **Source Leads** page can pull leads from public data that
+most lead-gen tools ignore. Each connector implements one interface
+(`src/lib/sources/types.ts`) and feeds the same dedupe → score → enrich → draft →
+review pipeline. Most are free official APIs that run anywhere; two are Playwright
+scrapers that run best on your own machine.
+
+| Connector | Source | Type | Gives |
+| --- | --- | --- | --- |
+| **SEC EDGAR** | 10-K full-text + Form 4 | API | Public companies + named execs |
+| **SEC Form D** | Private placement filings | API | Companies that just raised + execs |
+| **IRS 990** | ProPublica Nonprofit Explorer | API | Nonprofits + category, revenue, officer |
+| **USAspending** | USAspending.gov | API | Federal contract/grant recipients |
+| **NPPES Healthcare** | NPI Registry | API | Clinics + licensed practitioners |
+| **NIH RePORTER** | NIH-funded research | API | Research orgs + named PIs |
+| **openFDA** | FDA device registrations | API | Medical-device manufacturers |
+| **HN Who's Hiring** | HN Algolia | API | Companies actively hiring (intent) |
+| **Y Combinator** | YC directory | Scraper | Startups + website |
+| **Directory / Event** | Any URL you provide | Scraper | Linked orgs on a page |
+
+No public source publishes emails, so connector leads carry
+company/title/website/location and are flagged for **enrichment**.
+
+### Enrichment (making leads emailable)
+
+The **Enrich missing emails** button on the Lead Database fills emails for leads
+with a name + company domain. With a `HUNTER_API_KEY` it *finds and verifies*
+real addresses; without one it generates the common `first.last@domain` pattern,
+stored **unverified** with a warning. See `src/lib/services/enrich.ts`.
+
+### Adding a connector
+
+Create `src/lib/sources/myConnector.ts` implementing `SourceConnector`, then add
+it to `CONNECTORS` in `src/lib/sources/registry.ts` — it appears on the Source
+Leads page automatically. Add a label in the lead source maps
+(`src/app/leads/page.tsx`, `src/components/lead-filters.tsx`) if you want it in
+filters. Set `needsUrl: true` to get a target-URL input (like the generic
+scraper).
 
 ---
 
@@ -176,7 +236,10 @@ src/
 │   ├── types.ts              # Domain constants & types
 │   ├── serialization.ts      # SQLite list/JSON encode-decode helpers
 │   ├── providers/            # Apollo, Clay, LLM, Email adapters (+ mocks)
+│   ├── sources/              # public-source connectors (SEC, IRS, NPPES, …)
+│   ├── credentials.ts        # DB-over-env API key resolution
 │   └── services/             # scoring, dedupe, csv, outreach, assignment,
+│                             #   enrich, persistLeads, metrics, settings,
 │                             #   settings, metrics — pure business logic
 ├── server/actions/           # "use server" mutations called from the UI
 └── prisma/
