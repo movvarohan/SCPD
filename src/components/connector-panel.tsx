@@ -11,7 +11,7 @@ import { runConnector, type ConnectorResult } from "@/server/actions/sources";
 
 interface ConnectorInfo {
   key: string; label: string; description: string;
-  worksInSandbox: boolean; kind: "official_api" | "scraper";
+  worksInSandbox: boolean; kind: "official_api" | "scraper"; needsUrl?: boolean;
 }
 
 export function ConnectorPanel({ connectors }: { connectors: ConnectorInfo[] }) {
@@ -23,6 +23,7 @@ export function ConnectorPanel({ connectors }: { connectors: ConnectorInfo[] }) 
   const [industries, setIndustries] = React.useState("");
   const [location, setLocation] = React.useState("");
   const [limit, setLimit] = React.useState(10);
+  const [url, setUrl] = React.useState("");
   const [result, setResult] = React.useState<ConnectorResult | null>(null);
 
   const active = connectors.find((c) => c.key === activeKey);
@@ -34,6 +35,7 @@ export function ConnectorPanel({ connectors }: { connectors: ConnectorInfo[] }) 
         industries: industries.split(",").map((s) => s.trim()).filter(Boolean),
         location,
         limit,
+        url,
       });
       setResult(res);
       if (res.error) toast(res.error, "error");
@@ -80,9 +82,17 @@ export function ConnectorPanel({ connectors }: { connectors: ConnectorInfo[] }) 
 
         {active && (
           <>
+            {active.needsUrl && (
+              <div>
+                <Label>Target URL (a public list page — exhibitors, cohort, members, portfolio)</Label>
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://someconference.com/exhibitors" className="mt-1" />
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label>Keywords (comma-separated)</Label>
+                <Label>
+                  {active.needsUrl ? "Keyword filter (optional, comma-separated)" : "Keywords (comma-separated)"}
+                </Label>
                 <Input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g. artificial intelligence, fintech" className="mt-1" />
               </div>
               <div>

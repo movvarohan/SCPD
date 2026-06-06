@@ -7,6 +7,8 @@ export interface SourceCriteria {
   industries: string[];
   location: string;
   limit: number;
+  // Used by URL-driven connectors (e.g. the generic directory scraper).
+  url?: string;
 }
 
 // A pluggable public-data lead source (SEC EDGAR, IRS 990, directories, …).
@@ -21,5 +23,7 @@ export interface SourceConnector {
   readonly worksInSandbox: boolean;
   // Free, official API vs. scraping — surfaced in the UI.
   readonly kind: "official_api" | "scraper";
+  // When true, the UI shows a target-URL input (e.g. a conference page).
+  readonly needsUrl?: boolean;
   search(criteria: SourceCriteria): Promise<{ leads: RawLead[]; note?: string }>;
 }
