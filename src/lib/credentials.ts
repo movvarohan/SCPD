@@ -21,6 +21,7 @@ export interface Integrations {
 
   apolloApiKey: string;
   clayApiKey: string;
+  hunterApiKey: string;
 
   emailProvider: "mock" | "gmail_smtp" | "smartlead";
   gmailUser: string;
@@ -44,6 +45,7 @@ function fromEnv(): Integrations {
     openaiModel: process.env.OPENAI_MODEL || "gpt-4o-mini",
     apolloApiKey: process.env.APOLLO_API_KEY || "",
     clayApiKey: process.env.CLAY_API_KEY || "",
+    hunterApiKey: process.env.HUNTER_API_KEY || "",
     emailProvider: (process.env.EMAIL_PROVIDER as Integrations["emailProvider"]) || "mock",
     gmailUser: process.env.GMAIL_USER || "",
     gmailAppPassword: process.env.GMAIL_APP_PASSWORD || "",

@@ -69,6 +69,21 @@ export async function testApollo(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
+export async function testHunter(): Promise<{ ok: boolean; message: string }> {
+  const { hunterApiKey } = await getIntegrations();
+  if (!hunterApiKey.trim()) return { ok: false, message: "No Hunter key — enrichment will fall back to pattern guesses." };
+  try {
+    const res = await fetch(`https://api.hunter.io/v2/account?api_key=${encodeURIComponent(hunterApiKey.trim())}`);
+    if (!res.ok) return { ok: false, message: `Hunter error ${res.status}: ${(await res.text()).slice(0, 120)}` };
+    const json = (await res.json()) as { data?: { email?: string; requests?: { searches?: { used?: number; available?: number } } } };
+    const used = json.data?.requests?.searches?.used ?? 0;
+    const avail = json.data?.requests?.searches?.available ?? 0;
+    return { ok: true, message: `Hunter connected (${json.data?.email ?? "account"}). Searches: ${used}/${avail} used.` };
+  } catch (err) {
+    return { ok: false, message: (err as Error).message.slice(0, 160) };
+  }
+}
+
 export async function testEmail(): Promise<{ ok: boolean; message: string }> {
   const provider = await getEmailProvider();
   if (provider.name === "email:mock")

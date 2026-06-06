@@ -8,7 +8,7 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import {
-  saveCredentials, testLLM, testApollo, testEmail,
+  saveCredentials, testLLM, testApollo, testEmail, testHunter,
 } from "@/server/actions/integrations";
 
 // Non-secret current values + presence flags for secrets.
@@ -23,7 +23,7 @@ export interface CredentialsView {
   imapHost: string;
   imapPort: number;
   mailFromName: string;
-  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; gmailPassword: boolean };
+  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; gmailPassword: boolean };
 }
 
 type TestState = { ok: boolean; message: string } | "loading" | null;
@@ -38,6 +38,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
   const [anthropicModel, setAnthropicModel] = React.useState(view.anthropicModel);
   const [openaiKey, setOpenaiKey] = React.useState("");
   const [apolloKey, setApolloKey] = React.useState("");
+  const [hunterKey, setHunterKey] = React.useState("");
   const [emailProvider, setEmailProvider] = React.useState(view.emailProvider);
   const [gmailUser, setGmailUser] = React.useState(view.gmailUser);
   const [gmailPassword, setGmailPassword] = React.useState("");
@@ -49,6 +50,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
 
   const [llmTest, setLlmTest] = React.useState<TestState>(null);
   const [apolloTest, setApolloTest] = React.useState<TestState>(null);
+  const [hunterTest, setHunterTest] = React.useState<TestState>(null);
   const [emailTest, setEmailTest] = React.useState<TestState>(null);
 
   function save(after?: () => void) {
@@ -60,6 +62,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         openaiApiKey: openaiKey,
         openaiModel: view.openaiModel,
         apolloApiKey: apolloKey,
+        hunterApiKey: hunterKey,
         emailProvider: emailProvider as never,
         gmailUser,
         gmailAppPassword: gmailPassword,
@@ -68,7 +71,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         mailFromName,
       });
       // Clear secret inputs after save (they're persisted server-side).
-      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setGmailPassword("");
+      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setGmailPassword("");
       toast("Credentials saved.", "success");
       router.refresh();
       after?.();
@@ -143,6 +146,22 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
           </div>
           <Button variant="outline" size="sm" onClick={() => runTest(testApollo, setApolloTest)} disabled={pending}>
             <Plug className="h-3.5 w-3.5" /> Save & test Apollo
+          </Button>
+        </section>
+
+        {/* Hunter — email find/verify */}
+        <section className="space-y-3 border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-slate-800">Hunter — email find & verify (enrichment)</h4>
+            <TestBadge state={hunterTest} />
+          </div>
+          <div>
+            <Label>Hunter API key {view.has.hunter && <SetTag />}</Label>
+            <Input type="password" value={hunterKey} onChange={(e) => setHunterKey(e.target.value)} placeholder={view.has.hunter ? "•••• saved" : "Hunter.io key (free tier)"} className="mt-1 max-w-md" />
+            <p className="mt-1 text-xs text-slate-500">With a key, &quot;Enrich missing emails&quot; finds + verifies real emails. Without one, it falls back to pattern guesses (unverified).</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => runTest(testHunter, setHunterTest)} disabled={pending}>
+            <Plug className="h-3.5 w-3.5" /> Save & test Hunter
           </Button>
         </section>
 

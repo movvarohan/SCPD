@@ -17,7 +17,7 @@ export function EnrichButton() {
       const res = await enrichMissingEmails();
       toast(
         res.updated > 0
-          ? `Guessed emails for ${res.updated} leads (${res.skipped} skipped — no domain/name). All marked unverified.`
+          ? `Enriched ${res.updated} leads${res.verified ? `, ${res.verified} verified` : " (unverified guesses)"} · ${res.skipped} skipped (no domain).`
           : `No leads enriched — ${res.skipped} lacked a usable company domain + name.`,
         res.updated > 0 ? "success" : "info"
       );

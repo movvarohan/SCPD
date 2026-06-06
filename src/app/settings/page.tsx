@@ -56,6 +56,7 @@ export default async function SettingsPage() {
       openai: Boolean(integ.openaiApiKey),
       apollo: Boolean(integ.apolloApiKey),
       clay: Boolean(integ.clayApiKey),
+      hunter: Boolean(integ.hunterApiKey),
       gmailPassword: Boolean(integ.gmailAppPassword),
     },
   };
@@ -78,6 +79,7 @@ export default async function SettingsPage() {
           { name: "LLM (email generation)", configured: llm.configured, mode: llm.mode },
           { name: "Apollo (sourcing)", configured: apollo.configured, mode: apollo.mode },
           { name: "Clay (enrichment)", configured: clay.configured, mode: clay.mode },
+          { name: "Hunter (email find/verify)", configured: Boolean(integ.hunterApiKey), mode: integ.hunterApiKey ? "hunter" : "pattern guess" },
           { name: "Email (sending)", configured: email.configured, mode: email.mode },
         ]}
         permissions={PERMISSIONS}

@@ -6,7 +6,7 @@ import { encodeJson } from "@/lib/serialization";
 import { scoreLead } from "@/lib/services/scoring";
 import { getRuleWeights } from "./scoring";
 import { getCurrentUser } from "@/lib/auth";
-import { domainFromWebsite, guessEmail } from "@/lib/services/enrich";
+import { domainFromWebsite, enrichEmail } from "@/lib/services/enrich";
 import type { LeadStatus } from "@/lib/types";
 
 export async function updateLead(
@@ -101,7 +101,7 @@ export async function deleteLead(id: string) {
 
 // Guess emails for leads that have a name + company domain but no email.
 // Emails are stored as GUESSED (verifiedEmail stays false) with a warning note.
-export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: number; skipped: number }> {
+export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: number; skipped: number; verified: number }> {
   const user = await getCurrentUser();
   const leads = await db.lead.findMany({
     where: {
@@ -115,18 +115,21 @@ export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: num
 
   let updated = 0;
   let skipped = 0;
+  let verified = 0;
   for (const lead of leads) {
     const domain = domainFromWebsite(lead.companyWebsite);
     if (!domain) { skipped++; continue; }
-    const guess = guessEmail(lead.firstName, lead.lastName, domain);
-    if (!guess) { skipped++; continue; }
+    // Uses Hunter (real find + verify) when HUNTER_API_KEY is set, else a guess.
+    const result = await enrichEmail(lead.firstName, lead.lastName, domain);
+    if (!result) { skipped++; continue; }
+    if (result.verified) verified++;
     await db.lead.update({
       where: { id: lead.id },
       data: {
-        workEmail: guess.email,
-        email: guess.email,
-        verifiedEmail: false,
-        warmConnectionNotes: [lead.warmConnectionNotes, `Guessed email (${guess.pattern}) — verify before sending.`]
+        workEmail: result.email,
+        email: result.email,
+        verifiedEmail: result.verified,
+        warmConnectionNotes: [lead.warmConnectionNotes, `Email (${result.status})${result.verified ? "" : " — verify before sending"}.`]
           .filter(Boolean).join(" | "),
       },
     });
@@ -134,7 +137,7 @@ export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: num
       data: {
         leadId: lead.id,
         type: "note",
-        notes: `Email guessed from domain ${domain}: ${guess.email} (pattern ${guess.pattern}, unverified).`,
+        notes: `Email ${result.source === "hunter" ? "found via Hunter" : "guessed"} from ${domain}: ${result.email} (${result.status}).`,
         createdById: user?.id,
       },
     });
@@ -143,5 +146,5 @@ export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: num
 
   revalidatePath("/leads");
   revalidatePath("/");
-  return { ok: true, updated, skipped };
+  return { ok: true, updated, skipped, verified };
 }

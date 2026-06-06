@@ -57,10 +57,68 @@ export function guessEmail(
   return { email: primary, pattern, candidates };
 }
 
-// TODO: real verification. Wire a provider here and return a confidence/status.
-// SMTP RCPT checks need port 25 (often blocked); prefer an HTTPS API:
-//   Hunter: GET https://api.hunter.io/v2/email-verifier?email=&api_key=
-//   NeverBounce / MillionVerifier: similar.
-export async function verifyEmail(_email: string): Promise<{ verified: boolean; status: string }> {
-  return { verified: false, status: "unverified (no verification provider configured)" };
+// --- Hunter.io email find + verify (HTTPS, works anywhere) ----------------
+import { getIntegrations } from "@/lib/credentials";
+
+export interface EnrichedEmail {
+  email: string;
+  verified: boolean;
+  status: string;
+  score?: number;
+  source: "hunter" | "guessed";
+}
+
+// Find a real email for a person at a domain. Uses Hunter when a key is
+// present (real lookup), otherwise returns the best-guess pattern (unverified).
+export async function enrichEmail(
+  firstName?: string | null,
+  lastName?: string | null,
+  domain?: string | null
+): Promise<EnrichedEmail | null> {
+  const d = (domain ?? "").trim().toLowerCase();
+  if (!d) return null;
+  const { hunterApiKey } = await getIntegrations();
+
+  if (hunterApiKey.trim() && firstName && lastName) {
+    try {
+      const url = `https://api.hunter.io/v2/email-finder?domain=${encodeURIComponent(d)}&first_name=${encodeURIComponent(firstName)}&last_name=${encodeURIComponent(lastName)}&api_key=${encodeURIComponent(hunterApiKey.trim())}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = (await res.json()) as { data?: { email?: string; score?: number; verification?: { status?: string } } };
+        const email = json.data?.email;
+        if (email) {
+          const score = json.data?.score;
+          const status = json.data?.verification?.status ?? (score && score >= 80 ? "likely" : "uncertain");
+          return { email, verified: status === "valid" || (score ?? 0) >= 90, status: `hunter:${status}`, score, source: "hunter" };
+        }
+      }
+      // Fall through to guess on non-OK / no email.
+    } catch {
+      /* fall back to guess */
+    }
+  }
+
+  const g = guessEmail(firstName, lastName, d);
+  if (!g) return null;
+  return { email: g.email, verified: false, status: `guessed (${g.pattern})`, source: "guessed" };
+}
+
+// Verify an existing email via Hunter when configured.
+export async function verifyEmail(email: string): Promise<{ verified: boolean; status: string; score?: number }> {
+  const { hunterApiKey } = await getIntegrations();
+  if (!hunterApiKey.trim()) return { verified: false, status: "unverified (no provider configured)" };
+  try {
+    const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${encodeURIComponent(hunterApiKey.trim())}`;
+    const res = await fetch(url);
+    if (!res.ok) return { verified: false, status: `hunter error ${res.status}` };
+    const json = (await res.json()) as { data?: { status?: string; score?: number } };
+    const status = json.data?.status ?? "unknown";
+    return { verified: status === "valid", status: `hunter:${status}`, score: json.data?.score };
+  } catch (e) {
+    return { verified: false, status: `error: ${(e as Error).message.slice(0, 80)}` };
+  }
+}
+
+export function hunterStatus(key: string): { configured: boolean; mode: string } {
+  return key.trim() ? { configured: true, mode: "hunter (find + verify)" } : { configured: false, mode: "pattern guess (unverified)" };
 }
