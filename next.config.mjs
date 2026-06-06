@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   // Keep Node-only mail libraries out of the bundler (they use dynamic requires).
-  serverExternalPackages: ["nodemailer", "imapflow"],
+  serverExternalPackages: ["nodemailer", "imapflow", "playwright"],
   // Allow large CSV payloads through server actions.
   experimental: {
     serverActions: {

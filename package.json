@@ -25,6 +25,7 @@
     "next": "15.1.4",
     "nodemailer": "^8.0.10",
     "papaparse": "^5.4.1",
+    "playwright": "^1.60.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "^2.15.0",

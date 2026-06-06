@@ -1,10 +1,16 @@
 import type { SourceConnector } from "./types";
 import { secEdgarConnector } from "./secEdgar";
+import { irs990Connector } from "./irs990";
+import { ycDirectoryConnector } from "./ycDirectory";
 
 // Registry of available public-source connectors. Add new connectors here
-// (IRS 990, accelerator directories, conference lists, scrapers, …) and they
+// (more registries, directories, conference lists, scrapers, …) and they
 // automatically appear on the Source Leads page.
-export const CONNECTORS: SourceConnector[] = [secEdgarConnector];
+export const CONNECTORS: SourceConnector[] = [
+  secEdgarConnector,
+  irs990Connector,
+  ycDirectoryConnector,
+];
 
 export function getConnector(key: string): SourceConnector | undefined {
   return CONNECTORS.find((c) => c.key === key);

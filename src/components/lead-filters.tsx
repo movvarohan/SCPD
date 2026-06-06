@@ -14,6 +14,8 @@ const SOURCE_OPTIONS = [
   { value: "apollo", label: "Apollo" },
   { value: "clay", label: "Clay" },
   { value: "sec_edgar", label: "SEC EDGAR" },
+  { value: "irs_990", label: "IRS 990" },
+  { value: "yc_directory", label: "YC Directory" },
   { value: "manual", label: "Manual" },
 ];
 
