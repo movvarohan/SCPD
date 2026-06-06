@@ -3,6 +3,7 @@ import { secEdgarConnector } from "./secEdgar";
 import { secFormDConnector } from "./secFormD";
 import { irs990Connector } from "./irs990";
 import { usaSpendingConnector } from "./usaSpending";
+import { nppesConnector } from "./nppes";
 import { hnHiringConnector } from "./hnHiring";
 import { ycDirectoryConnector } from "./ycDirectory";
 import { genericDirectoryConnector } from "./genericDirectory";
@@ -15,6 +16,7 @@ export const CONNECTORS: SourceConnector[] = [
   secFormDConnector,
   irs990Connector,
   usaSpendingConnector,
+  nppesConnector,
   hnHiringConnector,
   ycDirectoryConnector,
   genericDirectoryConnector,
