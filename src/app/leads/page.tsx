@@ -6,7 +6,7 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/page-header";
 import { LeadFilters } from "@/components/lead-filters";
-import { EnrichButton, VerifyEmailsButton } from "@/components/enrich-button";
+import { EnrichButton, VerifyEmailsButton, ResearchTopButton } from "@/components/enrich-button";
 import { StatusBadge, PriorityBadge, AlumniBadge, ScoreBadge } from "@/components/badges";
 import { db } from "@/lib/db";
 import { fullNameOf, bestEmailOf } from "@/lib/utils";
@@ -101,6 +101,7 @@ export default async function LeadsPage({
             >
               <Download className="h-3.5 w-3.5" /> Export CSV
             </a>
+            <ResearchTopButton />
             <EnrichButton />
             <VerifyEmailsButton />
           </>

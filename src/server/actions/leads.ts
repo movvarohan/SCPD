@@ -220,6 +220,50 @@ export async function researchLead(id: string): Promise<{ ok: boolean; message: 
   };
 }
 
+// Research the top-N highest-priority leads that have a website and haven't
+// been researched yet. Grounded (website + optional web news), never LinkedIn.
+export async function researchTopLeads(limit = 10): Promise<{ ok: boolean; researched: number; empty: number; scanned: number }> {
+  const user = await getCurrentUser();
+  const target = Math.max(1, Math.min(limit, 25));
+  // Scan more candidates than the target so dead/fake sites don't use up the
+  // budget — stop once we have `target` grounded results.
+  const candidates = await db.lead.findMany({
+    where: { companyWebsite: { not: null }, researchedAt: null },
+    orderBy: [{ score: "desc" }, { updatedAt: "desc" }],
+    take: Math.min(target * 4, 60),
+  });
+
+  let researched = 0;
+  let empty = 0;
+  let scanned = 0;
+  for (const lead of candidates) {
+    if (researched >= target) break;
+    scanned++;
+    const result = await runResearch(lead);
+    await db.lead.update({
+      where: { id: lead.id },
+      data: { researchJson: enc(result), researchedAt: new Date() },
+    });
+    if (result.groundedBy === "none") {
+      empty++;
+    } else {
+      researched++;
+      await db.interaction.create({
+        data: {
+          leadId: lead.id,
+          type: "note",
+          notes: `Bulk research (${result.groundedBy}) from ${result.sources.length} source(s).${result.hook ? ` Hook: ${result.hook}` : ""}`,
+          createdById: user?.id,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/leads");
+  revalidatePath("/");
+  return { ok: true, researched, empty, scanned };
+}
+
 // Bulk-verify existing unverified emails via Hunter.
 export async function verifyExistingEmails(): Promise<{ ok: boolean; verified: number; checked: number }> {
   const candidates = await db.lead.findMany({

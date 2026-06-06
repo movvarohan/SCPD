@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Wand2, ShieldCheck } from "lucide-react";
+import { Wand2, ShieldCheck, Telescope } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { enrichMissingEmails, verifyExistingEmails } from "@/server/actions/leads";
+import { enrichMissingEmails, verifyExistingEmails, researchTopLeads } from "@/server/actions/leads";
 
 export function EnrichButton() {
   const { toast } = useToast();
@@ -28,6 +28,31 @@ export function EnrichButton() {
   return (
     <Button variant="outline" size="sm" onClick={run} disabled={pending} title="Find/guess emails from company domain for leads missing one">
       <Wand2 className="h-3.5 w-3.5" /> {pending ? "Enriching…" : "Enrich missing emails"}
+    </Button>
+  );
+}
+
+export function ResearchTopButton() {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [pending, start] = React.useTransition();
+
+  function run() {
+    start(async () => {
+      const res = await researchTopLeads(10);
+      toast(
+        res.scanned === 0
+          ? "No un-researched leads with a company website to research."
+          : `Researched ${res.researched} of top ${res.scanned} leads${res.empty ? ` (${res.empty} had no fetchable site)` : ""}.`,
+        res.researched > 0 ? "success" : "info"
+      );
+      router.refresh();
+    });
+  }
+
+  return (
+    <Button variant="outline" size="sm" onClick={run} disabled={pending} title="Pull grounded public research (company site + news) for the top leads">
+      <Telescope className="h-3.5 w-3.5" /> {pending ? "Researching…" : "Research top leads"}
     </Button>
   );
 }
