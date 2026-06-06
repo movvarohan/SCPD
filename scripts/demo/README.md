@@ -5,7 +5,10 @@ demo of the SC Sourcing Engine by **driving the live app** with a headless
 browser, overlaying branded captions / section chips / an animated cursor, and
 stitching the frames into an MP4 with ffmpeg.
 
-Output: a ~5.5-minute, 1920×1080, H.264 video — `sc-sourcing-engine-demo.mp4`.
+Output: a ~8.5-minute, 1920×1080, H.264 video — `sc-sourcing-engine-demo.mp4`.
+The finished video is committed in this folder
+([`scripts/demo/sc-sourcing-engine-demo.mp4`](sc-sourcing-engine-demo.mp4)) — a
+full, step-by-step onboarding walkthrough so anyone in SC can follow along.
 
 ## How to regenerate it
 

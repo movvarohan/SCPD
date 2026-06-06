@@ -2,48 +2,57 @@
 // key IDs to /tmp/demo/state.json. Safe to run repeatedly.
 import { db } from "../../src/lib/db";
 import { researchLead } from "../../src/lib/services/research";
+import { scoreLead } from "../../src/lib/services/scoring";
 import { encodeJson } from "../../src/lib/serialization";
 import fs from "node:fs";
 
+const DEMO_ID = "demo-deel-lead";
+
 async function main() {
-  // 1) Ensure a lead with strong grounded research (prefer real-website leads).
-  let researched = await db.lead.findFirst({
-    where: { researchJson: { not: "" }, companyWebsite: { not: null } },
-    orderBy: { researchedAt: "desc" },
+  // 1) A named, real, public lead at a real company so the detail + research
+  // scene shows a full name AND genuine grounded research.
+  const base = {
+    firstName: "Alex",
+    lastName: "Bouaziz",
+    fullName: "Alex Bouaziz",
+    email: "alex.bouaziz@deel.com",
+    workEmail: "alex.bouaziz@deel.com",
+    title: "Co-Founder & CEO",
+    seniority: "founder",
+    companyName: "Deel",
+    companyWebsite: "https://www.deel.com",
+    industry: "B2B SaaS / HR Tech",
+    location: "San Francisco, CA",
+    companySize: "5000+",
+    source: "apollo",
+    isStanfordAlum: true,
+    isSCAlum: false,
+    warmConnectionType: "alumni",
+    warmConnectionNotes: "Met at a Stanford founders event; open to advising student teams.",
+    verifiedEmail: false,
+    status: "enriched",
+  };
+  const breakdown = scoreLead(base as never);
+  const lead = await db.lead.upsert({
+    where: { id: DEMO_ID },
+    create: { id: DEMO_ID, ...base, score: breakdown.total, priority: breakdown.priority, scoreBreakdownJson: encodeJson(breakdown) },
+    update: { ...base, score: breakdown.total, priority: breakdown.priority, scoreBreakdownJson: encodeJson(breakdown) },
   });
-  // Validate it actually has a hook; otherwise research a few real-site leads.
-  function hasHook(j: string | undefined) {
-    try { return Boolean(JSON.parse(j || "{}").hook); } catch { return false; }
-  }
-  if (!researched || !hasHook(researched.researchJson)) {
-    const candidates = await db.lead.findMany({
-      where: { source: { in: ["yc_directory", "hn_hiring"] }, companyWebsite: { not: null } },
-      take: 8,
-    });
-    for (const c of candidates) {
-      const r = await researchLead(c);
-      if (r.groundedBy !== "none" && r.hook) {
-        await db.lead.update({ where: { id: c.id }, data: { researchJson: encodeJson(r), researchedAt: new Date() } });
-        researched = await db.lead.findUnique({ where: { id: c.id } });
-        break;
-      }
-    }
-  }
 
-  // 2) Make sure that lead also has an email so the outreach story is coherent.
-  if (researched && !researched.email && !researched.workEmail) {
-    await db.lead.update({
-      where: { id: researched.id },
-      data: { email: `${(researched.firstName || "founder").toLowerCase()}@${(researched.companyWebsite || "example.com").replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "")}`, verifiedEmail: false },
-    });
-  }
+  // Run real grounded research on it (Deel's public website).
+  const r = await researchLead(lead);
+  await db.lead.update({ where: { id: DEMO_ID }, data: { researchJson: encodeJson(r), researchedAt: new Date() } });
 
+  // 2) Review queue should have drafts (seed provides them).
   const needsReview = await db.outreachDraft.count({ where: { status: "needs_review" } });
   const firstReviewDraft = await db.outreachDraft.findFirst({ where: { status: "needs_review" }, include: { lead: true } });
 
   const state = {
-    researchedLeadId: researched?.id ?? null,
-    researchedCompany: researched?.companyName ?? null,
+    researchedLeadId: DEMO_ID,
+    researchedCompany: "Deel",
+    researchedName: "Alex Bouaziz",
+    researchGrounded: r.groundedBy,
+    researchHook: r.hook?.slice(0, 80) ?? "",
     reviewLeadName: firstReviewDraft?.lead ? (firstReviewDraft.lead.fullName || firstReviewDraft.lead.firstName) : null,
     needsReviewCount: needsReview,
   };
