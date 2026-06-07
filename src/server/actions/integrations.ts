@@ -11,6 +11,8 @@ import { getLLMProvider } from "@/lib/providers/llm";
 import { getApolloProvider } from "@/lib/providers/apollo";
 import { getEmailProvider } from "@/lib/providers/email";
 import { getOrgSettings, complianceFooter, getAutoSendConfig } from "@/lib/services/settings";
+import { runDueFollowUps } from "@/lib/services/followups";
+import { runReplySync } from "@/lib/services/replysync";
 
 // --- Save credentials from the Settings panel ------------------------------
 export async function saveCredentials(overrides: IntegrationOverrides) {
@@ -146,55 +148,9 @@ export async function sendOutreach(
 // --- Send due follow-ups (cadence from auto-send config) -------------------
 export async function sendDueFollowUps(): Promise<{ ok: boolean; message: string }> {
   const cfg = await getAutoSendConfig();
-  const settings = await getOrgSettings();
-  const provider = await getEmailProvider();
+  if (!cfg.autoFollowUps) return { ok: false, message: "Automatic follow-ups are turned off (Settings → Auto-send rules)." };
   const user = await getCurrentUser();
-  const now = Date.now();
-  const DAY = 24 * 60 * 60 * 1000;
-
-  // Leads still in the outbound sequence (not replied/booked/opted out).
-  const leads = await db.lead.findMany({
-    where: { status: { in: ["sent", "follow_up_1_sent"] } },
-    include: {
-      drafts: { orderBy: { updatedAt: "desc" }, take: 1 },
-      interactions: { where: { type: "email_sent" }, orderBy: { date: "asc" }, take: 1 },
-    },
-  });
-
-  let sent = 0;
-  let due = 0;
-  for (const lead of leads) {
-    if (sent >= cfg.dailyCap) break;
-    const to = bestEmailOf(lead);
-    const draft = lead.drafts[0];
-    const firstSendAt = lead.interactions[0]?.date;
-    if (!to || !draft || !firstSendAt) continue;
-    const daysSince = (now - new Date(firstSendAt).getTime()) / DAY;
-
-    let step = 0;
-    let body = "";
-    if (lead.status === "sent" && daysSince >= cfg.followUpDays1 && draft.followUp1) {
-      step = 1; body = draft.followUp1;
-    } else if (lead.status === "follow_up_1_sent" && daysSince >= cfg.followUpDays2 && draft.followUp2) {
-      step = 2; body = draft.followUp2;
-    }
-    if (!step) continue;
-    due++;
-
-    const res = await provider.sendEmail(to, `Re: ${draft.subject}`, body + complianceFooter(settings));
-    if (!res.ok) continue;
-    await db.lead.update({ where: { id: lead.id }, data: { status: step === 1 ? "follow_up_1_sent" : "follow_up_2_sent" } });
-    await db.interaction.create({
-      data: {
-        leadId: lead.id,
-        type: "email_sent",
-        notes: `Follow-up ${step} sent to ${to} via ${provider.name} (auto-cadence, ${Math.round(daysSince)}d after first email).`,
-        createdById: user?.id,
-      },
-    });
-    sent++;
-  }
-
+  const { sent, due } = await runDueFollowUps(user?.id);
   revalidatePath("/tracking");
   revalidatePath("/");
   return {
@@ -211,57 +167,14 @@ export async function syncReplies(): Promise<{ ok: boolean; message: string }> {
   if (provider.name === "email:mock")
     return { ok: false, message: "Connect a mailbox to sync replies." };
 
-  let replies;
-  try {
-    replies = await provider.getReplies();
-  } catch (err) {
-    return { ok: false, message: `IMAP error: ${(err as Error).message.slice(0, 200)}` };
-  }
-
-  // Build a lookup of contacted leads by normalized email.
-  const contacted = await db.lead.findMany({
-    where: { status: { in: ["sent", "follow_up_1_sent", "follow_up_2_sent"] } },
-  });
-  const byEmail = new Map<string, (typeof contacted)[number]>();
-  for (const l of contacted) {
-    for (const e of [l.email, l.workEmail, l.personalEmail]) {
-      const n = normalizeEmail(e);
-      if (n) byEmail.set(n, l);
-    }
-  }
-
-  let matched = 0;
-  let optOuts = 0;
-  for (const reply of replies) {
-    const lead = byEmail.get(normalizeEmail(reply.from));
-    if (!lead) continue;
-    // Honor opt-outs (CAN-SPAM) — mark not interested instead of replied.
-    const isOptOut = /unsubscribe|opt[\s-]?out|remove me|stop\b/i.test(`${reply.subject} ${reply.snippet}`);
-    await db.lead.update({
-      where: { id: lead.id },
-      data: { status: isOptOut ? "not_interested" : "replied" },
-    });
-    await db.interaction.create({
-      data: {
-        leadId: lead.id,
-        type: "reply",
-        notes: isOptOut
-          ? `Opt-out received from ${reply.from} — marked not interested. ("${reply.subject}")`
-          : `Reply received from ${reply.from}: "${reply.subject}" (${reply.receivedAt}).`,
-      },
-    });
-    byEmail.delete(normalizeEmail(reply.from)); // count each lead once
-    if (isOptOut) optOuts++;
-    matched++;
-  }
-
+  const r = await runReplySync();
   revalidatePath("/tracking");
   revalidatePath("/assignments");
   revalidatePath("/");
   return {
     ok: true,
-    message: matched > 0
-      ? `Synced ${replies.length} inbox messages — ${matched} matched (${matched - optOuts} replied, ${optOuts} opted out).`
-      : `Checked ${replies.length} inbox messages — no new replies matched contacted leads.`,
+    message: r.matched > 0
+      ? `Synced ${r.checked} inbox messages — ${r.matched} matched (${r.matched - r.optOuts} replied, ${r.optOuts} opted out). Those leads will get no more follow-ups.`
+      : `Checked ${r.checked} inbox messages — no new replies matched contacted leads.`,
   };
 }

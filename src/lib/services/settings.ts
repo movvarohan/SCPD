@@ -65,6 +65,9 @@ export interface AutoSendConfig {
   autoFollowUps: boolean;
   followUpDays1: number; // days after the first email to send follow-up 1
   followUpDays2: number; // days after the first email to send follow-up 2
+  // Hands-off automation: a background scheduler runs due follow-ups itself.
+  autoRunFollowUps: boolean;
+  runIntervalMinutes: number;
 }
 
 export const DEFAULT_AUTO_SEND: AutoSendConfig = {
@@ -79,6 +82,8 @@ export const DEFAULT_AUTO_SEND: AutoSendConfig = {
   autoFollowUps: true,
   followUpDays1: 3,
   followUpDays2: 7,
+  autoRunFollowUps: false,
+  runIntervalMinutes: 60,
 };
 
 const AUTO_SEND_KEY = "auto_send";

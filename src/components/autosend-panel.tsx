@@ -125,16 +125,36 @@ export function AutoSendPanel({ config, emailLive }: { config: AutoSendConfig; e
           </label>
           <p className="mt-1 text-xs text-slate-500">Sends follow-up 1 and 2 on this cadence (run from Sending &amp; Tracking → “Send due follow-ups”). Skips anyone who replied, booked, or opted out.</p>
           {cfg.autoFollowUps && (
-            <div className="mt-2 flex flex-wrap items-end gap-4">
-              <div>
-                <Label>Follow-up 1 (days after first email)</Label>
-                <Input type="number" value={cfg.followUpDays1} onChange={(e) => set("followUpDays1", Number(e.target.value))} className="mt-1 w-28" />
+            <>
+              <div className="mt-2 flex flex-wrap items-end gap-4">
+                <div>
+                  <Label>Follow-up 1 (days after first email)</Label>
+                  <Input type="number" value={cfg.followUpDays1} onChange={(e) => set("followUpDays1", Number(e.target.value))} className="mt-1 w-28" />
+                </div>
+                <div>
+                  <Label>Follow-up 2 (days after first email)</Label>
+                  <Input type="number" value={cfg.followUpDays2} onChange={(e) => set("followUpDays2", Number(e.target.value))} className="mt-1 w-28" />
+                </div>
               </div>
-              <div>
-                <Label>Follow-up 2 (days after first email)</Label>
-                <Input type="number" value={cfg.followUpDays2} onChange={(e) => set("followUpDays2", Number(e.target.value))} className="mt-1 w-28" />
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                  <input type="checkbox" checked={cfg.autoRunFollowUps} onChange={(e) => set("autoRunFollowUps", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
+                  Run follow-ups automatically (hands-off)
+                </label>
+                <p className="mt-1 text-xs text-slate-500">
+                  When on, a background scheduler sends due follow-ups on its own — no button needed. When off, click “Send due follow-ups” on Sending &amp; Tracking.
+                </p>
+                {cfg.autoRunFollowUps && (
+                  <div className="mt-2 flex items-end gap-2">
+                    <div>
+                      <Label>Check every (minutes)</Label>
+                      <Input type="number" value={cfg.runIntervalMinutes} onChange={(e) => set("runIntervalMinutes", Number(e.target.value))} className="mt-1 w-28" />
+                    </div>
+                    <Badge tone="cardinal" className="mb-1.5">automated</Badge>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           )}
         </div>
 
