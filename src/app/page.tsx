@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui
 import { PageHeader } from "@/components/page-header";
 import { StatusChart, SourceChart, PriorityChart } from "@/components/dashboard-charts";
 import { getDashboardMetrics } from "@/lib/services/metrics";
+import { getAutoSendConfig } from "@/lib/services/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fullNameOf } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/badges";
+import { AutoSendStatus } from "@/components/autosend-status";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,7 @@ function Stat({
 }
 
 export default async function DashboardPage() {
-  const [m, user, highLeads, recent] = await Promise.all([
+  const [m, user, highLeads, recent, autoSend] = await Promise.all([
     getDashboardMetrics(),
     getCurrentUser(),
     db.lead.findMany({
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
       include: { assignedPD: true },
     }),
     db.lead.findMany({ orderBy: { updatedAt: "desc" }, take: 6 }),
+    getAutoSendConfig(),
   ]);
 
   return (
@@ -52,6 +55,14 @@ export default async function DashboardPage() {
         title={`Welcome back, ${user?.name?.split(" ")[0] ?? "PD"}`}
         description="Your sourcing pipeline at a glance — from sourced leads to booked calls."
       />
+
+      {autoSend.enabled && (
+        <AutoSendStatus
+          autoSentToday={m.autoSentToday}
+          sentToday={m.sentToday}
+          dailyCap={autoSend.dailyCap}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Total Leads" value={m.totalLeads} icon={Users} href="/leads" tone="cardinal" />

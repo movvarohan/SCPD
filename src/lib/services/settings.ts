@@ -61,6 +61,10 @@ export interface AutoSendConfig {
   requireVerifiedEmail: boolean;
   skipIfWarnings: boolean;
   dailyCap: number;
+  // Automatic follow-ups for sent leads.
+  autoFollowUps: boolean;
+  followUpDays1: number; // days after the first email to send follow-up 1
+  followUpDays2: number; // days after the first email to send follow-up 2
 }
 
 export const DEFAULT_AUTO_SEND: AutoSendConfig = {
@@ -72,6 +76,9 @@ export const DEFAULT_AUTO_SEND: AutoSendConfig = {
   requireVerifiedEmail: true,
   skipIfWarnings: true,
   dailyCap: 25,
+  autoFollowUps: true,
+  followUpDays1: 3,
+  followUpDays2: 7,
 };
 
 const AUTO_SEND_KEY = "auto_send";

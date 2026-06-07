@@ -8,10 +8,10 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
 import { StatusBadge } from "@/components/badges";
-import { Send, RefreshCw, Inbox } from "lucide-react";
+import { Send, Inbox, Clock } from "lucide-react";
 import { TRACKING_STATUSES, LEAD_STATUS_LABELS } from "@/lib/types";
 import { setLeadStatus } from "@/server/actions/leads";
-import { sendOutreach, syncReplies } from "@/server/actions/integrations";
+import { sendOutreach, syncReplies, sendDueFollowUps } from "@/server/actions/integrations";
 
 interface Row {
   id: string; name: string; company: string | null; email: string | null;
@@ -26,10 +26,19 @@ export function TrackingTable({
   const { toast } = useToast();
   const router = useRouter();
   const [syncing, startSync] = React.useTransition();
+  const [followingUp, startFollowUp] = React.useTransition();
 
   function doSync() {
     startSync(async () => {
       const res = await syncReplies();
+      toast(res.message, res.ok ? "success" : "error");
+      router.refresh();
+    });
+  }
+
+  function doFollowUps() {
+    startFollowUp(async () => {
+      const res = await sendDueFollowUps();
       toast(res.message, res.ok ? "success" : "error");
       router.refresh();
     });
@@ -47,9 +56,14 @@ export function TrackingTable({
             </span>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={doSync} disabled={syncing || !emailLive}>
-          <Inbox className="h-3.5 w-3.5" /> {syncing ? "Syncing…" : "Sync replies from inbox"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={doFollowUps} disabled={followingUp}>
+            <Clock className="h-3.5 w-3.5" /> {followingUp ? "Sending…" : "Send due follow-ups"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={doSync} disabled={syncing || !emailLive}>
+            <Inbox className="h-3.5 w-3.5" /> {syncing ? "Syncing…" : "Sync replies from inbox"}
+          </Button>
+        </div>
       </div>
 
       <Card>

@@ -13,19 +13,34 @@ import {
   OUTREACH_TONES, type OutreachType,
 } from "@/lib/types";
 import { generateDraftsForLeads } from "@/server/actions/outreach";
-import { fullNameOf } from "@/lib/utils";
+import { Zap } from "lucide-react";
+import type { AutoSendConfig } from "@/lib/services/settings";
 
 interface LeadOption {
   id: string; name: string; title: string | null; company: string | null;
-  industry: string | null; priority: string; score: number;
+  industry: string | null; companySize: string | null; seniority: string | null;
+  verifiedEmail: boolean; hasEmail: boolean;
+  priority: string; score: number;
   isStanfordAlum: boolean; isSCAlum: boolean; warmConnectionType: string;
   hasDraft: boolean;
 }
 
+// Client mirror of the server's auto-send decision (warnings are only known at
+// send time, so this is a "would auto-send" preview).
+function wouldAutoSend(l: LeadOption, cfg?: AutoSendConfig): boolean {
+  if (!cfg?.enabled || !l.hasEmail) return false;
+  if (cfg.requireVerifiedEmail && !l.verifiedEmail) return false;
+  if (l.score < cfg.minScore) return false;
+  if (cfg.industries.length && !cfg.industries.some((i) => (l.industry ?? "").toLowerCase().includes(i.toLowerCase()))) return false;
+  if (cfg.companySizes.length && !cfg.companySizes.includes(l.companySize ?? "")) return false;
+  if (cfg.seniorities.length && !cfg.seniorities.includes(l.seniority ?? "")) return false;
+  return true;
+}
+
 export function OutreachGenerator({
-  leads, defaultSender, llmMode,
+  leads, defaultSender, llmMode, autoSend,
 }: {
-  leads: LeadOption[]; defaultSender: { name: string; role: string }; llmMode: string;
+  leads: LeadOption[]; defaultSender: { name: string; role: string }; llmMode: string; autoSend?: AutoSendConfig;
 }) {
   const { toast } = useToast();
   const router = useRouter();
@@ -44,6 +59,11 @@ export function OutreachGenerator({
     const hay = `${l.name} ${l.company ?? ""} ${l.title ?? ""} ${l.industry ?? ""}`.toLowerCase();
     return hay.includes(q.toLowerCase());
   });
+
+  const autoPreviewCount = React.useMemo(
+    () => leads.filter((l) => selected.has(l.id) && wouldAutoSend(l, autoSend)).length,
+    [leads, selected, autoSend]
+  );
 
   function toggle(id: string) {
     setSelected((s) => {
@@ -101,6 +121,9 @@ export function OutreachGenerator({
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium text-slate-900">{l.name}</span>
                     {l.hasDraft && <Badge tone="blue">has draft</Badge>}
+                    {wouldAutoSend(l, autoSend) && (
+                      <Badge tone="cardinal"><Zap className="h-3 w-3" /> auto</Badge>
+                    )}
                   </div>
                   <div className="truncate text-xs text-slate-500">{l.title}{l.company ? ` · ${l.company}` : ""}</div>
                 </div>
@@ -150,8 +173,21 @@ export function OutreachGenerator({
               <span>LLM engine</span>
               <Badge tone={llmMode === "mock" ? "slate" : "green"}>{llmMode}</Badge>
             </div>
-            <p className="mt-1">Drafts use only stored facts and never invent details. Each draft goes to the Review Queue — nothing is sent automatically.</p>
+            <p className="mt-1">Drafts use only stored facts and never invent details.</p>
           </div>
+
+          {autoSend?.enabled && autoPreviewCount > 0 ? (
+            <div className="rounded-lg border border-cardinal-200 bg-cardinal-50 p-2.5 text-xs text-cardinal-800">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Zap className="h-3.5 w-3.5" /> Dry-run preview
+              </div>
+              <p className="mt-1">
+                <span className="font-semibold">{autoPreviewCount}</span> of {selected.size} selected match your auto-send rule and will <span className="font-semibold">send immediately</span> (pending the missing-data check). The other {selected.size - autoPreviewCount} go to the Review Queue.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">Each draft goes to the Review Queue — nothing is sent automatically.</p>
+          )}
 
           <Button className="w-full" onClick={generate} disabled={pending}>
             <Wand2 className="h-4 w-4" /> {pending ? "Generating…" : `Generate ${selected.size || ""} drafts`}

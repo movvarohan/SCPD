@@ -41,6 +41,7 @@ export default async function OutreachPage() {
       )}
       <OutreachGenerator
         llmMode={llm.mode}
+        autoSend={autoSend}
         defaultSender={{ name: user?.name ?? "Stanford Consulting PD", role: "Project Director" }}
         leads={leads.map((l) => ({
           id: l.id,
@@ -48,6 +49,10 @@ export default async function OutreachPage() {
           title: l.title,
           company: l.companyName,
           industry: l.industry,
+          companySize: l.companySize,
+          seniority: l.seniority,
+          verifiedEmail: l.verifiedEmail,
+          hasEmail: Boolean(l.email || l.workEmail || l.personalEmail),
           priority: l.priority,
           score: l.score,
           isStanfordAlum: l.isStanfordAlum,

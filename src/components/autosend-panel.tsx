@@ -117,6 +117,27 @@ export function AutoSendPanel({ config, emailLive }: { config: AutoSendConfig; e
           </div>
         </div>
 
+        {/* Follow-ups */}
+        <div className="rounded-lg border border-slate-200 p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+            <input type="checkbox" checked={cfg.autoFollowUps} onChange={(e) => set("autoFollowUps", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
+            Automatic follow-ups for sent leads
+          </label>
+          <p className="mt-1 text-xs text-slate-500">Sends follow-up 1 and 2 on this cadence (run from Sending &amp; Tracking → “Send due follow-ups”). Skips anyone who replied, booked, or opted out.</p>
+          {cfg.autoFollowUps && (
+            <div className="mt-2 flex flex-wrap items-end gap-4">
+              <div>
+                <Label>Follow-up 1 (days after first email)</Label>
+                <Input type="number" value={cfg.followUpDays1} onChange={(e) => set("followUpDays1", Number(e.target.value))} className="mt-1 w-28" />
+              </div>
+              <div>
+                <Label>Follow-up 2 (days after first email)</Label>
+                <Input type="number" value={cfg.followUpDays2} onChange={(e) => set("followUpDays2", Number(e.target.value))} className="mt-1 w-28" />
+              </div>
+            </div>
+          )}
+        </div>
+
         <Button onClick={save} disabled={pending}><Save className="h-4 w-4" /> Save auto-send rules</Button>
       </CardContent>
     </Card>

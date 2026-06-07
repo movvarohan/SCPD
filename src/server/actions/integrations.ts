@@ -10,7 +10,7 @@ import {
 import { getLLMProvider } from "@/lib/providers/llm";
 import { getApolloProvider } from "@/lib/providers/apollo";
 import { getEmailProvider } from "@/lib/providers/email";
-import { getOrgSettings, complianceFooter } from "@/lib/services/settings";
+import { getOrgSettings, complianceFooter, getAutoSendConfig } from "@/lib/services/settings";
 
 // --- Save credentials from the Settings panel ------------------------------
 export async function saveCredentials(overrides: IntegrationOverrides) {
@@ -141,6 +141,68 @@ export async function sendOutreach(
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/");
   return { ok: true, message: `Sent to ${to}.` };
+}
+
+// --- Send due follow-ups (cadence from auto-send config) -------------------
+export async function sendDueFollowUps(): Promise<{ ok: boolean; message: string }> {
+  const cfg = await getAutoSendConfig();
+  const settings = await getOrgSettings();
+  const provider = await getEmailProvider();
+  const user = await getCurrentUser();
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  // Leads still in the outbound sequence (not replied/booked/opted out).
+  const leads = await db.lead.findMany({
+    where: { status: { in: ["sent", "follow_up_1_sent"] } },
+    include: {
+      drafts: { orderBy: { updatedAt: "desc" }, take: 1 },
+      interactions: { where: { type: "email_sent" }, orderBy: { date: "asc" }, take: 1 },
+    },
+  });
+
+  let sent = 0;
+  let due = 0;
+  for (const lead of leads) {
+    if (sent >= cfg.dailyCap) break;
+    const to = bestEmailOf(lead);
+    const draft = lead.drafts[0];
+    const firstSendAt = lead.interactions[0]?.date;
+    if (!to || !draft || !firstSendAt) continue;
+    const daysSince = (now - new Date(firstSendAt).getTime()) / DAY;
+
+    let step = 0;
+    let body = "";
+    if (lead.status === "sent" && daysSince >= cfg.followUpDays1 && draft.followUp1) {
+      step = 1; body = draft.followUp1;
+    } else if (lead.status === "follow_up_1_sent" && daysSince >= cfg.followUpDays2 && draft.followUp2) {
+      step = 2; body = draft.followUp2;
+    }
+    if (!step) continue;
+    due++;
+
+    const res = await provider.sendEmail(to, `Re: ${draft.subject}`, body + complianceFooter(settings));
+    if (!res.ok) continue;
+    await db.lead.update({ where: { id: lead.id }, data: { status: step === 1 ? "follow_up_1_sent" : "follow_up_2_sent" } });
+    await db.interaction.create({
+      data: {
+        leadId: lead.id,
+        type: "email_sent",
+        notes: `Follow-up ${step} sent to ${to} via ${provider.name} (auto-cadence, ${Math.round(daysSince)}d after first email).`,
+        createdById: user?.id,
+      },
+    });
+    sent++;
+  }
+
+  revalidatePath("/tracking");
+  revalidatePath("/");
+  return {
+    ok: true,
+    message: due === 0
+      ? "No follow-ups are due yet."
+      : `Sent ${sent} follow-up(s) of ${due} due (cadence: day ${cfg.followUpDays1} / ${cfg.followUpDays2}).`,
+  };
 }
 
 // --- Pull replies from the connected inbox and match to leads --------------
