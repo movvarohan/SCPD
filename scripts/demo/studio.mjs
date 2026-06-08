@@ -83,7 +83,14 @@ export class Studio {
             filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
           #demo-ring { position: fixed; z-index: 2147483645; width: 12px; height: 12px; border-radius: 999px;
             border: 3px solid ${CARDINAL}; opacity: 0; transform: translate(-100px,-100px) scale(1); pointer-events: none; }
+          #demo-spot { position: fixed; z-index: 2147483640; left:0; top:0; width:0; height:0; border-radius: 12px;
+            opacity: 0; pointer-events: none; box-shadow: 0 0 0 9999px rgba(8,12,24,.58); outline: 2px solid ${CARDINAL};
+            outline-offset: 2px; transition: left .35s cubic-bezier(.4,0,.2,1), top .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1), opacity .3s ease; }
+          #demo-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0%; z-index: 2147483647;
+            background: linear-gradient(90deg, ${CARDINAL}, ${SAND}); transition: width .4s ease; }
         </style>
+        <div id="demo-progress"></div>
+        <div id="demo-spot"></div>
         <div id="demo-cap"><div class="accent"></div><div class="body"><div class="eb"></div><div class="t"></div><div class="s"></div></div></div>
         <div id="demo-mark"><span class="b">SC</span><span>SC Sourcing Engine</span></div>
         <svg id="demo-cursor" viewBox="0 0 24 24" fill="white" stroke="#0f172a" stroke-width="1.4"><path d="M5 3l5.5 16 2.3-6.9L19 9.5z"/></svg>
@@ -104,10 +111,17 @@ export class Studio {
           r.style.transform = `translate(${x - 6}px,${y - 6}px) scale(${on ? 2.6 : 1})`;
           r.style.opacity = on ? "0.9" : "0";
         },
+        spot(x, y, w, h) {
+          const s = document.getElementById("demo-spot");
+          s.style.left = x + "px"; s.style.top = y + "px"; s.style.width = w + "px"; s.style.height = h + "px"; s.style.opacity = "1";
+        },
+        spotOff() { document.getElementById("demo-spot").style.opacity = "0"; },
+        progress(pct) { document.getElementById("demo-progress").style.width = Math.max(0, Math.min(100, pct)) + "%"; },
       };
     }, { CARDINAL, SAND });
-    // restore section eyebrow after re-inject
+    // restore section eyebrow + progress after re-inject
     if (this.section) await this.page.evaluate((lbl) => window.__demo.eyebrow(lbl), this.section);
+    if (this.progressPct) await this.page.evaluate((p) => window.__demo.progress(p), this.progressPct);
   }
 
   async setSection(num, lbl) {
@@ -121,6 +135,44 @@ export class Studio {
 
   async mark(on) {
     await this.page.evaluate((v) => window.__demo && window.__demo.mark(v), on);
+  }
+
+  async progress(pct) {
+    this.progressPct = pct;
+    await this.page.evaluate((p) => window.__demo && window.__demo.progress(p), pct);
+  }
+
+  // Spotlight an element: dim the page and ring the element being explained.
+  async highlight(selector, pad = 10) {
+    const box = await this.page.evaluate((sel, pad) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      el.scrollIntoView({ block: "center", behavior: "instant" });
+      const r = el.getBoundingClientRect();
+      window.__demo.spot(Math.round(r.left - pad), Math.round(r.top - pad), Math.round(r.width + pad * 2), Math.round(r.height + pad * 2));
+      return true;
+    }, selector, pad);
+    if (box) { await this.sleep(420); await this.injectOverlay(); }
+    return box;
+  }
+  // Spotlight an element matched by text.
+  async highlightText(text, tag = "*", pad = 10) {
+    const ok = await this.page.evaluate((text, tag, pad) => {
+      const els = Array.from(document.querySelectorAll(tag));
+      const el = els.find((e) => e.offsetParent !== null && (e.textContent || "").trim() === text)
+        || els.find((e) => e.offsetParent !== null && (e.textContent || "").includes(text));
+      if (!el) return false;
+      el.scrollIntoView({ block: "center", behavior: "instant" });
+      const r = el.getBoundingClientRect();
+      window.__demo.spot(Math.round(r.left - pad), Math.round(r.top - pad), Math.round(r.width + pad * 2), Math.round(r.height + pad * 2));
+      return true;
+    }, text, tag, pad);
+    if (ok) await this.sleep(420);
+    return ok;
+  }
+  async unhighlight() {
+    await this.page.evaluate(() => window.__demo && window.__demo.spotOff());
+    await this.sleep(220);
   }
 
   // ---- frame capture ----------------------------------------------------

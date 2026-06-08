@@ -4,6 +4,7 @@ import { db } from "../../src/lib/db";
 import { researchLead } from "../../src/lib/services/research";
 import { scoreLead } from "../../src/lib/services/scoring";
 import { encodeJson } from "../../src/lib/serialization";
+import { saveAutoSendConfig, DEFAULT_AUTO_SEND } from "../../src/lib/services/settings";
 import fs from "node:fs";
 
 const DEMO_ID = "demo-deel-lead";
@@ -44,6 +45,23 @@ async function main() {
   await db.lead.update({ where: { id: DEMO_ID }, data: { researchJson: encodeJson(r), researchedAt: new Date() } });
 
   // 2) Review queue should have drafts (seed provides them).
+  // Enable a demo-friendly auto-send rule so the dry-run preview, the dashboard
+  // kill-switch, and the follow-up cadence are all visible on camera.
+  await saveAutoSendConfig({
+    ...DEFAULT_AUTO_SEND,
+    enabled: true,
+    industries: ["AI", "Fintech", "SaaS", "Health"],
+    minScore: 3,
+    requireVerifiedEmail: false,
+    skipIfWarnings: true,
+    dailyCap: 25,
+    autoFollowUps: true,
+    followUpDays1: 3,
+    followUpDays2: 7,
+    autoRunFollowUps: true,
+    runIntervalMinutes: 60,
+  });
+
   const needsReview = await db.outreachDraft.count({ where: { status: "needs_review" } });
   const firstReviewDraft = await db.outreachDraft.findFirst({ where: { status: "needs_review" }, include: { lead: true } });
 
