@@ -25,7 +25,7 @@ export interface Integrations {
   samApiKey: string;
   tavilyApiKey: string;
 
-  emailProvider: "mock" | "gmail_smtp" | "smartlead";
+  emailProvider: "mock" | "gmail_smtp" | "resend" | "smartlead";
   gmailUser: string;
   gmailAppPassword: string;
   smtpHost: string;
@@ -34,6 +34,11 @@ export interface Integrations {
   imapPort: number;
   mailFromName: string;
   smartleadApiKey: string;
+
+  // Resend: transactional HTTPS email. Lets Autopilot send without a personal
+  // mailbox (works on serverless where SMTP ports are often blocked).
+  resendApiKey: string;
+  resendFrom: string; // verified sender, e.g. "outreach@yourdomain.org"
 }
 
 const INTEGRATIONS_KEY = "integrations";
@@ -59,6 +64,8 @@ function fromEnv(): Integrations {
     imapPort: Number(process.env.IMAP_PORT || 993),
     mailFromName: process.env.MAIL_FROM_NAME || "Stanford Consulting",
     smartleadApiKey: process.env.SMARTLEAD_API_KEY || "",
+    resendApiKey: process.env.RESEND_API_KEY || "",
+    resendFrom: process.env.RESEND_FROM || "",
   };
 }
 

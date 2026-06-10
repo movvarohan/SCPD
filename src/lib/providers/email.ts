@@ -145,6 +145,86 @@ class GmailSmtpProvider implements EmailProvider {
   }
 }
 
+// --- Resend (transactional HTTPS) ------------------------------------------
+// Sends over HTTPS, so it works on serverless platforms that block SMTP ports
+// and needs no personal mailbox — ideal for unattended Autopilot. Replies are
+// routed to the configured reply-to; inbound reply sync over the API is not
+// wired up here, so pair Resend with a monitored reply-to inbox if you rely on
+// "stop follow-ups when they reply".
+class ResendProvider implements EmailProvider {
+  readonly name = "email:resend";
+  constructor(private c: Integrations) {}
+
+  private from() {
+    const addr = this.c.resendFrom;
+    return this.c.mailFromName ? `${this.c.mailFromName} <${addr}>` : addr;
+  }
+
+  private html(body: string) {
+    const escaped = body
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;white-space:pre-wrap">${escaped}</div>`;
+  }
+
+  private replyTo() {
+    // Prefer a real Gmail address so replies are human-readable; else omit.
+    return this.c.gmailUser || undefined;
+  }
+
+  async sendEmail(to: string, subject: string, body: string): Promise<SendResult> {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.c.resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: this.from(),
+          to: [to],
+          subject,
+          text: body,
+          html: this.html(body),
+          reply_to: this.replyTo(),
+        }),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        return { ok: false, error: `resend ${res.status}: ${detail.slice(0, 160)}` };
+      }
+      const json = (await res.json()) as { id?: string };
+      return { ok: true, providerMessageId: json.id };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  }
+
+  async scheduleFollowUp(): Promise<SendResult> {
+    // The app's own scheduler drives follow-up timing; we just send when due.
+    return { ok: false, error: "Use the built-in follow-up scheduler with Resend." };
+  }
+
+  async getReplies(): Promise<ReplyEvent[]> {
+    // Resend inbound parsing requires a webhook; not wired in this build.
+    return [];
+  }
+
+  async verify() {
+    if (!this.c.resendApiKey) return { ok: false, error: "Missing Resend API key." };
+    if (!this.c.resendFrom) return { ok: false, error: "Missing verified Resend sender address." };
+    try {
+      // Lightweight auth check against the domains endpoint.
+      const res = await fetch("https://api.resend.com/domains", {
+        headers: { Authorization: `Bearer ${this.c.resendApiKey}` },
+      });
+      if (res.status === 401) return { ok: false, error: "Resend API key rejected (401)." };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  }
+}
+
 // --- Smartlead (placeholder) -----------------------------------------------
 class SmartleadProvider implements EmailProvider {
   readonly name = "email:smartlead";
@@ -169,6 +249,9 @@ export async function getEmailProvider(): Promise<EmailProvider> {
   if (c.emailProvider === "gmail_smtp" && c.gmailUser && c.gmailAppPassword) {
     return new GmailSmtpProvider(c);
   }
+  if (c.emailProvider === "resend" && c.resendApiKey && c.resendFrom) {
+    return new ResendProvider(c);
+  }
   if (c.emailProvider === "smartlead" && c.smartleadApiKey) {
     return new SmartleadProvider(c.smartleadApiKey);
   }
@@ -180,11 +263,17 @@ export async function emailStatus(): Promise<{ configured: boolean; mode: string
   if (c.emailProvider === "gmail_smtp" && c.gmailUser && c.gmailAppPassword) {
     return { configured: true, mode: `gmail · ${c.gmailUser}` };
   }
+  if (c.emailProvider === "resend" && c.resendApiKey && c.resendFrom) {
+    return { configured: true, mode: `resend · ${c.resendFrom}` };
+  }
   if (c.emailProvider === "smartlead" && c.smartleadApiKey) {
     return { configured: true, mode: "smartlead (placeholder)" };
   }
   if (c.emailProvider === "gmail_smtp") {
     return { configured: false, mode: "gmail (needs address + app password)" };
+  }
+  if (c.emailProvider === "resend") {
+    return { configured: false, mode: "resend (needs API key + verified sender)" };
   }
   return { configured: false, mode: "mock (no real send)" };
 }

@@ -23,7 +23,8 @@ export interface CredentialsView {
   imapHost: string;
   imapPort: number;
   mailFromName: string;
-  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; tavily: boolean; gmailPassword: boolean };
+  resendFrom: string;
+  has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; tavily: boolean; gmailPassword: boolean; resend: boolean };
 }
 
 type TestState = { ok: boolean; message: string } | "loading" | null;
@@ -49,6 +50,8 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
   const [imapHost, setImapHost] = React.useState(view.imapHost);
   const [imapPort, setImapPort] = React.useState(view.imapPort);
   const [mailFromName, setMailFromName] = React.useState(view.mailFromName);
+  const [resendKey, setResendKey] = React.useState("");
+  const [resendFrom, setResendFrom] = React.useState(view.resendFrom);
 
   const [llmTest, setLlmTest] = React.useState<TestState>(null);
   const [apolloTest, setApolloTest] = React.useState<TestState>(null);
@@ -73,9 +76,11 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         smtpHost, smtpPort: Number(smtpPort),
         imapHost, imapPort: Number(imapPort),
         mailFromName,
+        resendApiKey: resendKey,
+        resendFrom,
       });
       // Clear secret inputs after save (they're persisted server-side).
-      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setTavilyKey(""); setGmailPassword("");
+      setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setTavilyKey(""); setGmailPassword(""); setResendKey("");
       toast("Credentials saved.", "success");
       router.refresh();
       after?.();
@@ -192,34 +197,64 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
               <Select value={emailProvider} onChange={(e) => setEmailProvider(e.target.value)} className="mt-1">
                 <option value="mock">Mock (no real send)</option>
                 <option value="gmail_smtp">Gmail App Password (SMTP + IMAP)</option>
+                <option value="resend">Resend (HTTPS — no inbox needed)</option>
               </Select>
             </div>
             <div>
               <Label>From display name</Label>
               <Input value={mailFromName} onChange={(e) => setMailFromName(e.target.value)} className="mt-1" />
             </div>
-            <div>
-              <Label>Gmail address</Label>
-              <Input value={gmailUser} onChange={(e) => setGmailUser(e.target.value)} placeholder="you@gmail.com" className="mt-1" />
-            </div>
-            <div>
-              <Label>Gmail App Password {view.has.gmailPassword && <SetTag />}</Label>
-              <Input type="password" value={gmailPassword} onChange={(e) => setGmailPassword(e.target.value)} placeholder={view.has.gmailPassword ? "•••• saved" : "16-char app password"} className="mt-1" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>SMTP host</Label><Input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} className="mt-1" /></div>
-              <div><Label>SMTP port</Label><Input type="number" value={smtpPort} onChange={(e) => setSmtpPort(Number(e.target.value))} className="mt-1" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>IMAP host</Label><Input value={imapHost} onChange={(e) => setImapHost(e.target.value)} className="mt-1" /></div>
-              <div><Label>IMAP port</Label><Input type="number" value={imapPort} onChange={(e) => setImapPort(Number(e.target.value))} className="mt-1" /></div>
-            </div>
+            {emailProvider === "gmail_smtp" && (
+              <>
+                <div>
+                  <Label>Gmail address</Label>
+                  <Input value={gmailUser} onChange={(e) => setGmailUser(e.target.value)} placeholder="you@gmail.com" className="mt-1" />
+                </div>
+                <div>
+                  <Label>Gmail App Password {view.has.gmailPassword && <SetTag />}</Label>
+                  <Input type="password" value={gmailPassword} onChange={(e) => setGmailPassword(e.target.value)} placeholder={view.has.gmailPassword ? "•••• saved" : "16-char app password"} className="mt-1" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>SMTP host</Label><Input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} className="mt-1" /></div>
+                  <div><Label>SMTP port</Label><Input type="number" value={smtpPort} onChange={(e) => setSmtpPort(Number(e.target.value))} className="mt-1" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>IMAP host</Label><Input value={imapHost} onChange={(e) => setImapHost(e.target.value)} className="mt-1" /></div>
+                  <div><Label>IMAP port</Label><Input type="number" value={imapPort} onChange={(e) => setImapPort(Number(e.target.value))} className="mt-1" /></div>
+                </div>
+              </>
+            )}
+            {emailProvider === "resend" && (
+              <>
+                <div>
+                  <Label>Verified sender address</Label>
+                  <Input value={resendFrom} onChange={(e) => setResendFrom(e.target.value)} placeholder="outreach@yourdomain.org" className="mt-1" />
+                </div>
+                <div>
+                  <Label>Resend API key {view.has.resend && <SetTag />}</Label>
+                  <Input type="password" value={resendKey} onChange={(e) => setResendKey(e.target.value)} placeholder={view.has.resend ? "•••• saved" : "re_..."} className="mt-1" />
+                </div>
+                <div>
+                  <Label>Reply-to inbox (optional)</Label>
+                  <Input value={gmailUser} onChange={(e) => setGmailUser(e.target.value)} placeholder="replies@yourdomain.org" className="mt-1" />
+                </div>
+              </>
+            )}
           </div>
-          <p className="text-xs text-slate-500">
-            Create an App Password at{" "}
-            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-cardinal-700 hover:underline">myaccount.google.com/apppasswords</a>{" "}
-            (requires 2-Step Verification). Emails send as <span className="font-medium">you</span>; replies arrive in your inbox and sync back here.
-          </p>
+          {emailProvider === "gmail_smtp" && (
+            <p className="text-xs text-slate-500">
+              Create an App Password at{" "}
+              <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-cardinal-700 hover:underline">myaccount.google.com/apppasswords</a>{" "}
+              (requires 2-Step Verification). Emails send as <span className="font-medium">you</span>; replies arrive in your inbox and sync back here.
+            </p>
+          )}
+          {emailProvider === "resend" && (
+            <p className="text-xs text-slate-500">
+              Get an API key at{" "}
+              <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-cardinal-700 hover:underline">resend.com/api-keys</a>{" "}
+              and verify your sending domain. Resend sends over HTTPS, so Autopilot runs on serverless without a personal inbox. Reply tracking needs a monitored reply-to inbox.
+            </p>
+          )}
           <Button variant="outline" size="sm" onClick={() => runTest(testEmail, setEmailTest)} disabled={pending}>
             <Plug className="h-3.5 w-3.5" /> Save & test mailbox
           </Button>

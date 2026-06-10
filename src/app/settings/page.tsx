@@ -69,6 +69,7 @@ export default async function SettingsPage() {
     imapHost: integ.imapHost,
     imapPort: integ.imapPort,
     mailFromName: integ.mailFromName,
+    resendFrom: integ.resendFrom,
     has: {
       anthropic: Boolean(integ.anthropicApiKey),
       openai: Boolean(integ.openaiApiKey),
@@ -78,6 +79,7 @@ export default async function SettingsPage() {
       sam: Boolean(integ.samApiKey),
       tavily: Boolean(integ.tavilyApiKey),
       gmailPassword: Boolean(integ.gmailAppPassword),
+      resend: Boolean(integ.resendApiKey),
     },
   };
 

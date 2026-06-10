@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getLLMProvider, type LLMMessage } from "@/lib/providers/llm";
 import { HELP_SYSTEM_PROMPT } from "@/lib/help-context";
+import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -10,6 +11,10 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Each LLM call costs money; cap per-user to 20 messages/minute.
+  const rl = rateLimit(`help:${user.id}`, 20, 60_000);
+  if (!rl.ok) return tooManyRequests(rl);
 
   let body: { messages?: { role: string; content: string }[] };
   try {

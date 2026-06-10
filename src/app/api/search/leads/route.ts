@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { fullNameOf } from "@/lib/utils";
+import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,11 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Palette fires on keystrokes; allow a generous burst then throttle.
+  const rl = rateLimit(`search:${user.id}`, 60, 60_000);
+  if (!rl.ok) return tooManyRequests(rl);
+
   const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) return Response.json({ results: [] });
 

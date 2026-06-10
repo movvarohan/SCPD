@@ -5,6 +5,9 @@
   "description": "SC Sourcing Engine - agent-assisted client sourcing for Stanford Consulting PDs",
   "scripts": {
     "dev": "next dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -44,6 +47,7 @@
     "puppeteer": "^25.1.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.8"
   }
 }
