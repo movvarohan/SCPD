@@ -140,16 +140,29 @@ sign-in/sign-up actions and keeping `createSession()` in
 | Route | Page |
 | --- | --- |
 | `/` | Dashboard — pipeline metrics, charts, top leads |
+| `/analytics` | Analytics — 8-week send/reply trend, pipeline funnel, source & industry breakdowns |
 | `/leads` | Lead Database — filterable table |
 | `/leads/[id]` | Lead Detail — full info, score breakdown, drafts, timeline, notes |
 | `/import` | Import — CSV upload, column mapping, preview, dedupe results |
 | `/source` | Source Leads — sourcing criteria → Apollo/Clay (mock) |
 | `/outreach` | Outreach Generator — select leads, generate drafts |
-| `/review` | Review Queue — human approval before sending |
+| `/review` | Review Queue — exceptions that automation wouldn't send (deliverability blockers, rule mismatches) |
 | `/tracking` | Sending & Tracking — manual status pipeline |
 | `/assignments` | PD Assignments — recommended PD + manual override, PD profiles |
 | `/scoring` | Scoring Rules — configurable weights + re-score |
-| `/settings` | Settings — org identity, allowed claims, templates, API key status |
+| `/settings` | Settings — org identity, auto-send rules & send window, do-not-contact list, templates, API keys, team |
+
+### Safety rails on automated sending
+
+- **Do-not-contact list** — opt-out replies are permanently suppressed; no send
+  path (manual, auto-send, Autopilot, follow-ups) will ever email a suppressed
+  address again, even if the person is re-imported as a new lead. Manage it in
+  Settings → Do-not-contact.
+- **Deliverability lint** — drafts with unresolved template tokens (e.g.
+  `{{firstName}}`) or an empty subject are never auto-sent; spam-trigger
+  phrases, ALL-CAPS subjects, and link overload surface as warnings.
+- **Business-hours send window** — automated sends only go out 8:00–18:00
+  (configurable, default America/Los_Angeles, weekdays only).
 
 ---
 

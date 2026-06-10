@@ -87,6 +87,15 @@ connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
 - **Guardrails** (Settings): the "Allowed claims" box controls what the AI may
   say about Stanford Consulting — it can never exceed it. The CAN-SPAM mailing
   address + opt-out footer is appended to every send automatically.
+- **Do-not-contact list** (Settings → Do-not-contact): anyone who replies
+  "unsubscribe" is suppressed permanently — no path will ever email them again,
+  even if they're re-imported later. You can also add an address by hand.
+- **Send window** (Settings → Auto-send rules): automated emails only go out
+  during business hours (default 8am–6pm Pacific, weekdays), so nothing lands
+  at 3am. Drafts with broken personalization (a leftover `{{name}}` token) are
+  never auto-sent — they wait for you in the Review Queue.
+- **Analytics** (sidebar): sends & replies per week, the full funnel from lead
+  to booked call, and which sources produce the best leads.
 - **Export** — Leads → Export CSV any time. Your data is never locked in.
 
 ## 5 · FAQ
