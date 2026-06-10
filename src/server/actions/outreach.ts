@@ -6,6 +6,8 @@ import { encodeJson } from "@/lib/serialization";
 import { generateOutreach, type OutreachInput } from "@/lib/services/outreach";
 import { getOrgSettings, getAutoSendConfig, complianceFooter } from "@/lib/services/settings";
 import { autoSendDecision } from "@/lib/services/autosend";
+import { lintEmail } from "@/lib/services/deliverability";
+import { isSuppressed } from "@/lib/services/suppression";
 import { getEmailProvider } from "@/lib/providers/email";
 import { getCurrentUser } from "@/lib/auth";
 import { bestEmailOf } from "@/lib/utils";
@@ -51,13 +53,35 @@ export async function generateDraftsForLeads(params: GenerateParams) {
 
   let created = 0;
   let autoSent = 0;
+  let skippedSuppressed = 0;
   for (const lead of leads) {
+    // Do-not-contact registry: never draft for a suppressed address.
+    const target = bestEmailOf(lead);
+    if (target && (await isSuppressed(target))) {
+      await db.lead.update({ where: { id: lead.id }, data: { status: "not_interested" } });
+      await db.interaction.create({
+        data: {
+          leadId: lead.id,
+          type: "note",
+          notes: `Draft skipped: ${target} is on the do-not-contact list.`,
+          createdById: user?.id,
+        },
+      });
+      skippedSuppressed++;
+      continue;
+    }
+
     const out = await generateOutreach(lead, input);
 
+    // Deliverability lint: blockers (unresolved tokens, empty subject) always
+    // force review; warnings feed the skipIfWarnings guardrail.
+    const lint = lintEmail(out.subject, out.body);
+    const allWarnings = [...out.warnings, ...lint.warnings];
+
     // Decide: auto-send or route to review?
-    const decision = autoSendDecision(lead, out.warnings, autoSend);
+    const decision = autoSendDecision(lead, allWarnings, autoSend);
     const underCap = autoSentToday + autoSent < autoSend.dailyCap;
-    const willAutoSend = decision.send && underCap;
+    const willAutoSend = decision.send && underCap && lint.blockers.length === 0;
 
     const draft = await db.outreachDraft.create({
       data: {
@@ -69,7 +93,7 @@ export async function generateDraftsForLeads(params: GenerateParams) {
         followUp2: out.followUp2,
         personalizationNote: out.personalizationNote,
         confidenceScore: out.confidenceScore,
-        warningsJson: encodeJson(out.warnings),
+        warningsJson: encodeJson([...lint.blockers, ...allWarnings]),
         status: willAutoSend ? "sent" : "needs_review",
       },
     });
@@ -104,7 +128,7 @@ export async function generateDraftsForLeads(params: GenerateParams) {
   revalidatePath("/leads");
   revalidatePath("/tracking");
   revalidatePath("/");
-  return { ok: true, created, autoSent, toReview: created - autoSent };
+  return { ok: true, created, autoSent, toReview: created - autoSent, skippedSuppressed };
 }
 
 // Regenerate a single existing draft in place.

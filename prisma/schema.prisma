@@ -298,3 +298,19 @@ model Setting {
   // JSON-encoded value
   value String @default("")
 }
+
+// ---------------------------------------------------------------------------
+// Do-not-contact registry
+// ---------------------------------------------------------------------------
+// A permanent, lead-independent suppression list. Opt-outs land here so the
+// address is never emailed again — even if the same person is re-imported as a
+// brand-new lead later. Every send path checks this as its final gate.
+model Suppression {
+  id        String   @id @default(cuid())
+  // Normalized (lowercased, trimmed) email address.
+  email     String   @unique
+  // "opt_out_reply" | "manual" | "bounce"
+  source    String   @default("manual")
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+}

@@ -72,6 +72,14 @@ export interface AutoSendConfig {
   // no human action at all. Only acts when a real mailbox is connected.
   autopilot: boolean;
   autopilotDailyTarget: number;
+  // Send window: automated sends (Autopilot, scheduled follow-ups) only go out
+  // during these hours in the configured timezone. A 3am cold email reads as a
+  // bot; a 9:40am one reads as a person. Manual sends are never blocked.
+  sendWindowEnabled: boolean;
+  sendWindowStart: number; // hour 0-23, inclusive
+  sendWindowEnd: number; // hour 0-23, exclusive
+  sendWeekdaysOnly: boolean;
+  sendTimezone: string; // IANA zone, e.g. "America/Los_Angeles"
 }
 
 // FULLY AUTOMATED BY DEFAULT: generated drafts send immediately (the Review
@@ -94,7 +102,47 @@ export const DEFAULT_AUTO_SEND: AutoSendConfig = {
   runIntervalMinutes: 60,
   autopilot: true,
   autopilotDailyTarget: 20,
+  sendWindowEnabled: true,
+  sendWindowStart: 8,
+  sendWindowEnd: 18,
+  sendWeekdaysOnly: true,
+  sendTimezone: "America/Los_Angeles",
 };
+
+// Is "now" inside the automated-send window? Pure given an explicit date, so
+// it's testable; falls back gracefully to "allowed" on a bad timezone string
+// rather than silently halting all automation.
+export function withinSendWindow(
+  cfg: Pick<AutoSendConfig, "sendWindowEnabled" | "sendWindowStart" | "sendWindowEnd" | "sendWeekdaysOnly" | "sendTimezone">,
+  now: Date = new Date()
+): { ok: boolean; reason: string } {
+  if (!cfg.sendWindowEnabled) return { ok: true, reason: "send window disabled" };
+  let hour: number;
+  let weekday: string;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: cfg.sendTimezone,
+      hour: "numeric",
+      hour12: false,
+      weekday: "short",
+    }).formatToParts(now);
+    hour = Number(parts.find((p) => p.type === "hour")?.value ?? NaN) % 24;
+    weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
+    if (Number.isNaN(hour)) throw new Error("no hour");
+  } catch {
+    return { ok: true, reason: `invalid timezone "${cfg.sendTimezone}" — window not enforced` };
+  }
+  if (cfg.sendWeekdaysOnly && (weekday === "Sat" || weekday === "Sun")) {
+    return { ok: false, reason: `outside send window (${weekday} — weekdays only)` };
+  }
+  if (hour < cfg.sendWindowStart || hour >= cfg.sendWindowEnd) {
+    return {
+      ok: false,
+      reason: `outside send window (${hour}:00 ${cfg.sendTimezone}; allowed ${cfg.sendWindowStart}:00–${cfg.sendWindowEnd}:00)`,
+    };
+  }
+  return { ok: true, reason: "within send window" };
+}
 
 const AUTO_SEND_KEY = "auto_send";
 

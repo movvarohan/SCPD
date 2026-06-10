@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { getEmailProvider } from "@/lib/providers/email";
-import { getOrgSettings, getAutoSendConfig, complianceFooter } from "@/lib/services/settings";
+import { getOrgSettings, getAutoSendConfig, complianceFooter, withinSendWindow } from "@/lib/services/settings";
 import { runReplySync } from "@/lib/services/replysync";
+import { isSuppressed } from "@/lib/services/suppression";
 import { bestEmailOf } from "@/lib/utils";
 
 // Core follow-up runner — no request context, so it can be called from a server
@@ -10,6 +11,7 @@ import { bestEmailOf } from "@/lib/utils";
 export async function runDueFollowUps(createdById?: string): Promise<{ sent: number; due: number }> {
   const cfg = await getAutoSendConfig();
   if (!cfg.autoFollowUps) return { sent: 0, due: 0 };
+  if (!withinSendWindow(cfg).ok) return { sent: 0, due: 0 };
 
   // Check the inbox for replies FIRST — a lead who just replied must not get a
   // follow-up. (No-op when no mailbox is connected.)
@@ -47,6 +49,16 @@ export async function runDueFollowUps(createdById?: string): Promise<{ sent: num
     }
     if (!step) continue;
     due++;
+
+    // Final do-not-contact gate (the address may have been suppressed since
+    // the first email went out).
+    if (await isSuppressed(to)) {
+      await db.lead.update({ where: { id: lead.id }, data: { status: "not_interested" } });
+      await db.interaction.create({
+        data: { leadId: lead.id, type: "note", notes: `Follow-up ${step} skipped: ${to} is on the do-not-contact list.`, createdById },
+      });
+      continue;
+    }
 
     const res = await provider.sendEmail(to, `Re: ${draft.subject}`, body + complianceFooter(settings));
     if (!res.ok) continue;

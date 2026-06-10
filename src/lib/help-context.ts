@@ -53,6 +53,14 @@ Each section has a "Save & test" button. Keys can also live in environment varia
 - Resend (alternative to Gmail): set the email provider to Resend, paste a Resend API key (resend.com/api-keys) and a verified sender address. Resend sends over HTTPS, so Autopilot works on serverless without a personal inbox — good when SMTP is blocked or you don't want to use a personal Gmail. Trade-off: reply tracking needs a monitored reply-to inbox (Resend doesn't sync replies back over the API here), so pick Gmail if "stop follow-ups when they reply" matters most.
 - Booked-call alerts (Settings → Notifications): paste a Slack or Discord incoming-webhook URL. When a lead's call is marked booked, the team gets an instant ping. Leave blank to disable.
 
+=== SAFETY RAILS ON AUTOMATED SENDING ===
+- Do-not-contact list (Settings → Do-not-contact): the hardest guarantee in the product. Addresses on it are NEVER emailed by any path — manual send, auto-send, Autopilot, or follow-ups — even if the person is re-imported as a brand-new lead later. Opt-out replies ("unsubscribe", "remove me", "stop") are added automatically; anyone on the team can add an address manually (e.g. someone asked a PD to stop at an event); only admins can remove one. Every add/remove is audited.
+- Deliverability lint: every draft is checked before sending. Hard blockers (an unresolved template token like {{firstName}} or [Name], an empty subject/body) force the draft into the Review Queue — they're never auto-sent. Softer signals (ALL-CAPS subject, spam-trigger phrases, too many links, very short body, too many exclamation marks) appear as warnings on the draft and count toward the "skip drafts with warnings" guardrail.
+- Business-hours send window (Settings → Auto-send rules): automated sends (Autopilot + scheduled follow-ups) only go out between the configured hours in the configured timezone (default 8:00–18:00 America/Los_Angeles, weekdays only) — a 9am email reads like a person, a 3am one reads like a bot. Manual sends are never blocked by the window. An invalid timezone fails open (window not enforced) rather than silently stopping all automation.
+
+=== ANALYTICS (sidebar → Analytics) ===
+Pipeline performance over time: emails sent and replies per week (last 8 weeks), the lead funnel (leads → have email → contacted → replied → booked) with stage-to-stage conversion, leads by source and by industry, reply/booked rates, average lead score, and the do-not-contact count.
+
 === TROUBLESHOOTING / FAQ ===
 - "Emails aren't actually arriving": a mailbox isn't connected — connect Gmail (above). Until then sends are simulated by design.
 - "Apollo sourcing returns mock leads": your Apollo key is free-tier; their search API requires a paid plan. The app says this in the result note.

@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
 import { CredentialsPanel } from "@/components/credentials-panel";
 import { AutoSendPanel } from "@/components/autosend-panel";
+import { SuppressionPanel } from "@/components/suppression-panel";
 import { TeamPanel } from "@/components/team-panel";
 import { AuditPanel } from "@/components/audit-panel";
 import { getCurrentUser, can } from "@/lib/auth";
@@ -52,6 +53,7 @@ export default async function SettingsPage() {
   const auditEvents = can(current, "manage_team")
     ? await db.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 50 })
     : [];
+  const suppressions = await db.suppression.findMany({ orderBy: { createdAt: "desc" }, take: 500 });
 
   // Build the absolute base URL for invite links from the request.
   const host = hdrs.get("host") ?? "localhost:3000";
@@ -124,6 +126,15 @@ export default async function SettingsPage() {
       </div>
       <div className="mt-4">
         <AutoSendPanel config={autoSend} emailLive={email.configured} />
+      </div>
+      <div className="mt-4">
+        <SuppressionPanel
+          isAdmin={can(current, "manage_team")}
+          rows={suppressions.map((s) => ({
+            id: s.id, email: s.email, source: s.source, reason: s.reason,
+            createdAt: s.createdAt.toISOString(),
+          }))}
+        />
       </div>
       <div className="mt-4">
         <CredentialsPanel view={credentialsView} />

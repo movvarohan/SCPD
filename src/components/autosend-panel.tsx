@@ -158,6 +158,37 @@ export function AutoSendPanel({ config, emailLive }: { config: AutoSendConfig; e
           )}
         </div>
 
+        {/* Send window */}
+        <div className="rounded-lg border border-slate-200 p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+            <input type="checkbox" checked={cfg.sendWindowEnabled} onChange={(e) => set("sendWindowEnabled", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
+            Business-hours send window
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            Automated sends (Autopilot, scheduled follow-ups) only go out during these hours — a 9am email reads like a person, a 3am one reads like a bot. Manual sends are never blocked.
+          </p>
+          {cfg.sendWindowEnabled && (
+            <div className="mt-2 flex flex-wrap items-end gap-4">
+              <div>
+                <Label>From (hour, 0–23)</Label>
+                <Input type="number" min={0} max={23} value={cfg.sendWindowStart} onChange={(e) => set("sendWindowStart", Number(e.target.value))} className="mt-1 w-24" />
+              </div>
+              <div>
+                <Label>Until (hour, 0–23)</Label>
+                <Input type="number" min={0} max={23} value={cfg.sendWindowEnd} onChange={(e) => set("sendWindowEnd", Number(e.target.value))} className="mt-1 w-24" />
+              </div>
+              <div>
+                <Label>Timezone (IANA)</Label>
+                <Input value={cfg.sendTimezone} onChange={(e) => set("sendTimezone", e.target.value)} placeholder="America/Los_Angeles" className="mt-1 w-52" />
+              </div>
+              <label className="mb-1.5 flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={cfg.sendWeekdaysOnly} onChange={(e) => set("sendWeekdaysOnly", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
+                Weekdays only
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Autopilot */}
         <div className="rounded-lg border border-slate-200 p-3">
           <label className="flex items-center gap-2 text-sm font-medium text-slate-800">

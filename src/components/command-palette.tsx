@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, LayoutDashboard, Users, Upload, Radar, PenLine, ClipboardCheck,
   Send, UserCheck, SlidersHorizontal, Settings, LifeBuoy, CornerDownLeft,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ type Item = NavItem | LeadItem;
 
 const NAV: NavItem[] = [
   { type: "nav", label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { type: "nav", label: "Analytics", href: "/analytics", icon: BarChart3 },
   { type: "nav", label: "Leads", href: "/leads", icon: Users },
   { type: "nav", label: "Import", href: "/import", icon: Upload },
   { type: "nav", label: "Source Leads", href: "/source", icon: Radar },

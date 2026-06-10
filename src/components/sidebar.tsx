@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   SlidersHorizontal,
   LifeBuoy,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ const NAV_GROUPS: {
     label: "Overview",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/leads", label: "Leads", icon: Users },
     ],
   },

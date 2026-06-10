@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getEmailProvider } from "@/lib/providers/email";
+import { suppressLead } from "@/lib/services/suppression";
 import { normalizeEmail } from "@/lib/utils";
 
 // Core reply-sync — no request context, callable from an action, the scheduler,
@@ -35,6 +36,11 @@ export async function runReplySync(): Promise<{ checked: number; matched: number
     if (!lead) continue;
     const isOptOut = /unsubscribe|opt[\s-]?out|remove me|stop\b/i.test(`${reply.subject} ${reply.snippet}`);
     await db.lead.update({ where: { id: lead.id }, data: { status: isOptOut ? "not_interested" : "replied" } });
+    if (isOptOut) {
+      // Permanent: lands in the do-not-contact registry so this address is
+      // never emailed again, even if re-imported as a fresh lead.
+      await suppressLead(lead, "opt_out_reply", `Opt-out reply: "${reply.subject}"`).catch(() => {});
+    }
     await db.interaction.create({
       data: {
         leadId: lead.id,

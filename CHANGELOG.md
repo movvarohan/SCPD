@@ -7,6 +7,21 @@ project adheres to semantic versioning.
 ## [Unreleased]
 
 ### Added
+- **Do-not-contact registry**: a permanent, lead-independent suppression list.
+  Opt-out replies land on it automatically; every send path (manual, auto-send,
+  Autopilot, follow-ups) checks it as a final gate, so a suppressed address is
+  never emailed again — even if re-imported as a new lead. Managed in
+  Settings → Do-not-contact (adds by anyone, removals admin-only, all audited).
+- **Deliverability linting** on every draft: unresolved template tokens and
+  empty subject/body are hard blockers that force human review; spam-trigger
+  phrases, ALL-CAPS subjects, link overload, and very short bodies surface as
+  warnings that feed the "skip drafts with warnings" guardrail.
+- **Business-hours send window**: Autopilot and scheduled follow-ups only send
+  between configurable hours in a configurable timezone (default 8:00–18:00
+  America/Los_Angeles, weekdays only). Manual sends are never blocked.
+- **Analytics page**: 8-week send/reply trend, pipeline funnel with
+  stage-to-stage conversion, leads by source and industry, reply/booked rates,
+  average score, and suppression count.
 - Automated unit test suite (Vitest): password hashing, lead scoring, auto-send
   decisions, dedupe, email enrichment, and CSV mapping.
 - GitHub Actions CI: typecheck, tests, and production build on every push and PR.

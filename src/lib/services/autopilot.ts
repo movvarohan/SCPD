@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
 import { getEmailProvider, emailStatus } from "@/lib/providers/email";
-import { getOrgSettings, getAutoSendConfig, complianceFooter } from "@/lib/services/settings";
+import { getOrgSettings, getAutoSendConfig, complianceFooter, withinSendWindow } from "@/lib/services/settings";
 import { generateOutreach, type OutreachInput } from "@/lib/services/outreach";
 import { researchLead } from "@/lib/services/research";
 import { autoSendDecision } from "@/lib/services/autosend";
+import { lintEmail } from "@/lib/services/deliverability";
+import { isSuppressed } from "@/lib/services/suppression";
 import { audit } from "@/lib/services/audit";
 import { encodeJson } from "@/lib/serialization";
 import { bestEmailOf } from "@/lib/utils";
@@ -31,6 +33,10 @@ export async function runAutopilot(): Promise<AutopilotResult> {
   const mail = await emailStatus();
   if (!mail.configured) {
     return { ran: false, reason: "no mailbox connected — autopilot waits so 'sent' always means delivered", considered: 0, researched: 0, sent: 0, queuedForReview: 0 };
+  }
+  const window = withinSendWindow(cfg);
+  if (!window.ok) {
+    return { ran: false, reason: window.reason, considered: 0, researched: 0, sent: 0, queuedForReview: 0 };
   }
 
   const settings = await getOrgSettings();
@@ -73,9 +79,21 @@ export async function runAutopilot(): Promise<AutopilotResult> {
   let sent = 0;
   let queued = 0;
 
+  let suppressed = 0;
   for (const candidate of candidates) {
     if (sent >= budget) break;
     let lead = candidate;
+
+    // Do-not-contact registry is the hard gate: never draft, never send.
+    const to0 = bestEmailOf(lead);
+    if (to0 && (await isSuppressed(to0))) {
+      await db.lead.update({ where: { id: lead.id }, data: { status: "not_interested" } });
+      await db.interaction.create({
+        data: { leadId: lead.id, type: "note", notes: `Skipped by Autopilot: ${to0} is on the do-not-contact list.` },
+      });
+      suppressed++;
+      continue;
+    }
 
     // Grounded research first, if possible and missing.
     if (!lead.researchedAt && lead.companyWebsite) {
@@ -92,7 +110,11 @@ export async function runAutopilot(): Promise<AutopilotResult> {
     }
 
     const out = await generateOutreach(lead, input);
-    const decision = autoSendDecision(lead, out.warnings, cfg);
+    // Deliverability lint: blockers (e.g. unresolved {{tokens}}) always force
+    // human review; warnings join the data warnings for the skipIfWarnings rule.
+    const lint = lintEmail(out.subject, out.body);
+    const allWarnings = [...out.warnings, ...lint.warnings];
+    const decision = autoSendDecision(lead, allWarnings, cfg);
     const to = bestEmailOf(lead);
 
     const draft = await db.outreachDraft.create({
@@ -105,12 +127,12 @@ export async function runAutopilot(): Promise<AutopilotResult> {
         followUp2: out.followUp2,
         personalizationNote: out.personalizationNote,
         confidenceScore: out.confidenceScore,
-        warningsJson: encodeJson(out.warnings),
+        warningsJson: encodeJson([...lint.blockers, ...allWarnings]),
         status: "needs_review",
       },
     });
 
-    if (decision.send && to) {
+    if (decision.send && to && lint.blockers.length === 0) {
       const res = await provider.sendEmail(to, out.subject, out.body + complianceFooter(settings));
       if (res.ok) {
         await db.outreachDraft.update({ where: { id: draft.id }, data: { status: "sent" } });
@@ -127,19 +149,24 @@ export async function runAutopilot(): Promise<AutopilotResult> {
       }
     }
     // Couldn't send — leave in the Review Queue as an exception.
+    const why = lint.blockers.length
+      ? `deliverability blocker: ${lint.blockers[0]}`
+      : decision.send
+        ? "send failed"
+        : decision.reason;
     await db.lead.update({ where: { id: lead.id }, data: { status: "needs_review" } });
     await db.interaction.create({
       data: {
         leadId: lead.id,
         type: "note",
-        notes: `Autopilot queued for review (${decision.send ? "send failed" : decision.reason}).`,
+        notes: `Autopilot queued for review (${why}).`,
       },
     });
     queued++;
   }
 
-  if (sent > 0 || queued > 0) {
-    await audit("automation.autopilot", `Autopilot: ${sent} sent, ${queued} queued for review, ${researched} researched`);
+  if (sent > 0 || queued > 0 || suppressed > 0) {
+    await audit("automation.autopilot", `Autopilot: ${sent} sent, ${queued} queued for review, ${suppressed} suppressed (do-not-contact), ${researched} researched`);
   }
   return { ran: true, considered: candidates.length, researched, sent, queuedForReview: queued };
 }

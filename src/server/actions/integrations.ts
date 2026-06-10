@@ -13,6 +13,7 @@ import { getEmailProvider } from "@/lib/providers/email";
 import { getOrgSettings, complianceFooter, getAutoSendConfig } from "@/lib/services/settings";
 import { runDueFollowUps } from "@/lib/services/followups";
 import { runReplySync } from "@/lib/services/replysync";
+import { isSuppressed } from "@/lib/services/suppression";
 import { audit } from "@/lib/services/audit";
 
 // --- Save credentials from the Settings panel ------------------------------
@@ -110,6 +111,9 @@ export async function sendOutreach(
   if (!lead) return { ok: false, message: "Lead not found." };
   const to = bestEmailOf(lead);
   if (!to) return { ok: false, message: "Lead has no email address — add one first." };
+  if (await isSuppressed(to)) {
+    return { ok: false, message: `${to} is on the do-not-contact list (they opted out). Remove them in Settings → Do-not-contact if this is a mistake.` };
+  }
 
   const draft = draftId
     ? await db.outreachDraft.findUnique({ where: { id: draftId } })
