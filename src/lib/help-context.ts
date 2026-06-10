@@ -11,7 +11,7 @@ The SC Sourcing Engine automates the pre-call work of client sourcing: find lead
 - Sign in at /login with email + password. New admins create an account at /signup ("Create an admin account" link on the login page).
 - Roles: ADMIN (everything: import, source, configure, approve, assign, manage team), REVIEWER (review/approve/edit/reject drafts), PD (sees assigned leads, updates statuses/notes, sets own interests/availability).
 - Invite teammates: Settings → "Team & invites" → enter email + role → Invite → copy the one-time join link (expires in 14 days, works once). The invitee opens it, sets name + password, and lands in the app. Admins can change member roles or remove members there (removal ends their sessions immediately). You can't demote yourself if you're the last admin.
-- Demo accounts (if sample data is loaded): admin@stanfordconsulting.org, reviewer@…, maya@…, leo@…, nina@… — all with password demo1234.
+- Production starts CLEAN: no sample users or sample leads. The dashboard shows a first-run setup checklist (invite team, connect Gmail, add keys, bring in leads) until the first leads arrive. Demo accounts/sample data exist only in local development databases.
 - To stop open self-signup after onboarding, an engineer sets the environment variable OPEN_SIGNUP=false (then new accounts are invite-only).
 - Forgot password: there is no self-serve reset yet — an admin/engineer must reset it in the database, or invite you again under a new email. (Known limitation.)
 
@@ -60,7 +60,7 @@ Each section has a "Save & test" button. Keys can also live in environment varia
 - "Auto-send didn't send to someone I expected": check the rule (industry/size/seniority/min score), the guardrails (verified email? warnings?), and the daily cap on the dashboard banner.
 - "A lead replied but got a follow-up anyway": follow-ups check the inbox first, but only if the mailbox is connected and the reply arrived in that inbox. Make sure Gmail is connected and "Sync replies" works.
 - "Invite link doesn't work": links expire after 14 days and work once. Create a new invite.
-- "I want to remove the sample/demo data": an engineer can run the reset script, or simply delete sample leads from the Leads page (select via each lead's Delete button). Demo user accounts can be removed in Settings → Team & invites.
+- "The dashboard is empty": by design — production starts with zero leads. Follow the setup checklist on the dashboard: invite your team, connect Gmail, then import a CSV or run a sourcing pull.
 - "Scrapers (Y Combinator / directory URL) return nothing on the hosted app": expected — they need a real browser and only run from a local copy. Everything else works hosted.
 - "I changed scoring weights but scores didn't change": click "Re-score all leads" on the Scoring page to apply.
 - Data export: Leads page → Export CSV (all leads, 21 columns).

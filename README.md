@@ -34,8 +34,10 @@ Deployment facts:
   then `next build`. Schema changes apply on deploy.
 - **Cron**: `vercel.json` schedules `/api/cron/follow-ups` daily (16:00 UTC);
   Vercel sends `Authorization: Bearer CRON_SECRET` automatically.
-- **Bootstrap**: `GET /api/setup/seed?secret=<CRON_SECRET>` seeds a fresh
-  database with sample data (refuses to wipe existing data without `force=1`).
+- **Bootstrap**: `GET /api/setup/seed?secret=<CRON_SECRET>` loads config
+  defaults only (scoring rules + email templates) — never sample data.
+  `GET /api/setup/clean?secret=…&confirm=1` strips any demo data if a database
+  was ever seeded with it.
 - **Env vars** (set in the Vercel project): `DATABASE_URL`, `DIRECT_URL`,
   `LLM_PROVIDER`, `ANTHROPIC_API_KEY`, `APOLLO_API_KEY`, `EMAIL_PROVIDER`,
   `OPEN_SIGNUP`, `CRON_SECRET`, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`.
@@ -120,8 +122,9 @@ session tokens in the DB, 30-day expiry):
   copy the one-time `/join/<token>` link (expires in 14 days). The invitee sets
   their name + password and lands in the app. Admins can also change roles and
   remove members there.
-- **Demo accounts** (from the seed) all use password **`demo1234`**:
-  `admin@stanfordconsulting.org`, `reviewer@…`, `maya@…`, `leo@…`, `nina@…`.
+- **Demo accounts exist only in local development** (created by `npm run db:seed`,
+  password `demo1234`). **Production starts clean** — no sample users, no sample
+  leads; the dashboard shows a first-run checklist instead.
 
 | Role | Can do |
 | --- | --- |

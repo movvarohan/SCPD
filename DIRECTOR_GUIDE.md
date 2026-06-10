@@ -26,18 +26,15 @@ creating an account and inviting the team) in the repository at
 1. **Create your account** — go to
    [sc-sourcing-engine.vercel.app/signup](https://sc-sourcing-engine.vercel.app/signup),
    enter your name, email, and a password. You'll be an **Admin** (full access).
-2. **Look around** — the app is pre-loaded with sample leads and drafts so every
-   screen has something on it. Nothing is "real" yet; you can delete samples any
-   time (each lead has a Delete button; sample team accounts can be removed in
-   Settings → Team & invites).
+2. **Follow the checklist** — your workspace starts **clean** (no placeholder
+   data). The dashboard shows a setup checklist: invite your team, connect
+   Gmail, and bring in your first leads. Everything in the app will be real
+   data your team creates.
 3. **Invite your team** — Settings → **Team & invites** → enter their email,
    pick a role, click **Invite**, and send them the link it generates.
    - **Admin** — everything (use sparingly)
    - **Reviewer** — reviews and approves outreach drafts
    - **PD** — sees their assigned leads, updates statuses, sets their interests
-4. *(Optional)* Sign in to the demo accounts to see other roles:
-   `reviewer@stanfordconsulting.org` or `maya@stanfordconsulting.org`, password
-   `demo1234` for all of them.
 
 ## 2 · Going fully live (15 minutes, one time)
 
@@ -95,6 +92,9 @@ then, sends are simulated on purpose.
 
 **A lead has no email address.** Public data sources never include emails.
 Use **Enrich missing emails** or the **Find email** button on the lead.
+
+**The dashboard looks empty.** It is — by design. Production starts with zero
+leads; import your alumni spreadsheet or run a sourcing pull and it fills in.
 
 **Research found nothing.** The lead has no company website on file (or the
 site blocked us). Add the website to the lead and hit Re-research.

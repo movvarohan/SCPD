@@ -13,6 +13,9 @@ import { db } from "@/lib/db";
 import { fullNameOf } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/badges";
 import { AutoSendStatus } from "@/components/autosend-status";
+import { GettingStarted } from "@/components/getting-started";
+import { llmStatus } from "@/lib/providers/llm";
+import { emailStatus } from "@/lib/providers/email";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +58,17 @@ export default async function DashboardPage() {
         title={`Welcome back, ${user?.name?.split(" ")[0] ?? "PD"}`}
         description="Your sourcing pipeline at a glance — from sourced leads to booked calls."
       />
+
+      {m.totalLeads === 0 && (
+        <GettingStarted
+          state={{
+            teamInvited: (await db.user.count()) > 1,
+            llmReady: (await llmStatus()).configured,
+            mailboxReady: (await emailStatus()).configured,
+            hasLeads: false,
+          }}
+        />
+      )}
 
       {autoSend.enabled && (
         <AutoSendStatus

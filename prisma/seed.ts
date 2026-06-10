@@ -68,8 +68,37 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
+// The seeded demo accounts — used by the production clean-up to remove
+// exactly these (and nothing a real person created).
+export const DEMO_USER_EMAILS = [
+  "admin@stanfordconsulting.org",
+  "reviewer@stanfordconsulting.org",
+  "maya@stanfordconsulting.org",
+  "leo@stanfordconsulting.org",
+  "nina@stanfordconsulting.org",
+];
+
+// Config defaults only — scoring rules + email templates. Idempotent; safe to
+// run on a live production database (it never touches users or leads).
+export async function seedConfigDefaults(db: PrismaClient) {
+  for (const rule of DEFAULT_SCORING_RULES) {
+    await db.scoringRule.upsert({
+      where: { key: rule.key },
+      create: { key: rule.key, label: rule.label, weight: rule.weight, enabled: true },
+      update: {},
+    });
+  }
+  if ((await db.emailTemplate.count()) === 0) {
+    for (const t of DEFAULT_TEMPLATES) {
+      await db.emailTemplate.create({ data: { ...t, enabled: true } });
+    }
+  }
+}
+
+// Full demo dataset — LOCAL DEVELOPMENT ONLY. Wipes the database and loads
+// fictional users/leads/drafts so every screen has content while developing.
 export async function runSeed(db: PrismaClient) {
-  console.log("🌱 Seeding SC Sourcing Engine...");
+  console.log("🌱 Seeding SC Sourcing Engine (LOCAL DEV SAMPLE DATA)...");
 
   // Clear existing data (idempotent reseed).
   await db.interaction.deleteMany();
@@ -139,19 +168,9 @@ export async function runSeed(db: PrismaClient) {
   }
   console.log(`  ✔ ${2 + pds.length} users (1 admin, 1 reviewer, ${pds.length} PDs)`);
 
-  // --- Scoring rules -----------------------------------------------------
-  for (const rule of DEFAULT_SCORING_RULES) {
-    await db.scoringRule.create({
-      data: { key: rule.key, label: rule.label, weight: rule.weight, enabled: true },
-    });
-  }
-  console.log(`  ✔ ${DEFAULT_SCORING_RULES.length} scoring rules`);
-
-  // --- Email templates ---------------------------------------------------
-  for (const t of DEFAULT_TEMPLATES) {
-    await db.emailTemplate.create({ data: { ...t, enabled: true } });
-  }
-  console.log(`  ✔ ${DEFAULT_TEMPLATES.length} email templates`);
+  // --- Config defaults (scoring rules + templates) -------------------------
+  await seedConfigDefaults(db);
+  console.log(`  ✔ ${DEFAULT_SCORING_RULES.length} scoring rules + ${DEFAULT_TEMPLATES.length} email templates`);
 
   // --- Companies + Leads -------------------------------------------------
   const statuses = [
