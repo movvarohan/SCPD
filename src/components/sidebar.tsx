@@ -13,6 +13,7 @@ import {
   UserCheck,
   Settings as SettingsIcon,
   SlidersHorizontal,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,10 @@ const NAV_GROUPS: {
       { href: "/scoring", label: "Scoring Rules", icon: SlidersHorizontal, admin: true },
       { href: "/settings", label: "Settings", icon: SettingsIcon },
     ],
+  },
+  {
+    label: "Support",
+    items: [{ href: "/help", label: "Help & Assistant", icon: LifeBuoy }],
   },
 ];
 

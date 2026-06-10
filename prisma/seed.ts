@@ -7,7 +7,8 @@ import { hashPassword } from "../src/lib/password";
 // All seeded demo accounts share this password (documented in the README).
 const DEMO_PASSWORD = "demo1234";
 
-const db = new PrismaClient();
+// Used when run as a CLI script; the API seed route passes its own client.
+const cliDb = new PrismaClient();
 
 const DEFAULT_TEMPLATES = [
   {
@@ -67,7 +68,7 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
-async function main() {
+export async function runSeed(db: PrismaClient) {
   console.log("🌱 Seeding SC Sourcing Engine...");
 
   // Clear existing data (idempotent reseed).
@@ -307,11 +308,15 @@ async function main() {
   console.log("✅ Seed complete.");
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await db.$disconnect();
-  });
+// CLI entrypoint: `npm run db:seed` / `tsx prisma/seed.ts`
+const isCli = process.argv[1]?.includes("seed");
+if (isCli) {
+  runSeed(cliDb)
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await cliDb.$disconnect();
+    });
+}
