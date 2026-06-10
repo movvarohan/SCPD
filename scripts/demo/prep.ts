@@ -10,6 +10,11 @@ import fs from "node:fs";
 const DEMO_ID = "demo-deel-lead";
 
 async function main() {
+  // Remove accounts/invites created by previous recordings so the on-camera
+  // sign-up and team-invite flows work fresh every run.
+  await db.user.deleteMany({ where: { email: { in: ["alex.rivera@stanfordconsulting.org", "taylor.chen@stanfordconsulting.org"] } } });
+  await db.invite.deleteMany({ where: { email: "taylor.chen@stanfordconsulting.org" } });
+
   // 1) A named, real, public lead at a real company so the detail + research
   // scene shows a full name AND genuine grounded research.
   const base = {

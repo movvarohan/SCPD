@@ -23,7 +23,7 @@ scoring fit, drafting outreach, tracking replies, assigning calls) while keeping
 
 ## 🎬 Demo & onboarding video
 
-A full, step-by-step walkthrough (~8.5 min, 1080p) is committed at
+A full, step-by-step walkthrough (~10.7 min, 1080p) is committed at
 [`scripts/demo/sc-sourcing-engine-demo.mp4`](scripts/demo/sc-sourcing-engine-demo.mp4) —
 everything below, shown on screen and explained, so anyone in SC can follow
 along. Regenerate it any time with the pipeline in
