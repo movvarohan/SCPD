@@ -5,6 +5,7 @@ import { researchLead } from "../../src/lib/services/research";
 import { scoreLead } from "../../src/lib/services/scoring";
 import { encodeJson } from "../../src/lib/serialization";
 import { saveAutoSendConfig, DEFAULT_AUTO_SEND } from "../../src/lib/services/settings";
+import { suppressEmail } from "../../src/lib/services/suppression";
 import fs from "node:fs";
 
 const DEMO_ID = "demo-deel-lead";
@@ -50,11 +51,13 @@ async function main() {
   await db.lead.update({ where: { id: DEMO_ID }, data: { researchJson: encodeJson(r), researchedAt: new Date() } });
 
   // 2) Review queue should have drafts (seed provides them).
-  // Enable a demo-friendly auto-send rule so the dry-run preview, the dashboard
-  // kill-switch, and the follow-up cadence are all visible on camera.
+  // Enable a demo-friendly auto-send rule so the auto-send preview, the dashboard
+  // kill-switch, the send window, and the follow-up cadence are all visible.
   await saveAutoSendConfig({
     ...DEFAULT_AUTO_SEND,
     enabled: true,
+    autopilot: true,
+    autopilotDailyTarget: 20,
     industries: ["AI", "Fintech", "SaaS", "Health"],
     minScore: 3,
     requireVerifiedEmail: false,
@@ -65,7 +68,17 @@ async function main() {
     followUpDays2: 7,
     autoRunFollowUps: true,
     runIntervalMinutes: 60,
+    sendWindowEnabled: true,
+    sendWindowStart: 8,
+    sendWindowEnd: 18,
+    sendWeekdaysOnly: true,
+    sendTimezone: "America/Los_Angeles",
   });
+
+  // 3) A couple of suppressed addresses so the Do-not-contact list isn't empty
+  //    on camera (one from an opt-out reply, one added manually).
+  await suppressEmail("optout@example.com", "opt_out_reply", 'Opt-out reply: "unsubscribe"').catch(() => {});
+  await suppressEmail("no-thanks@acme.io", "manual", "Asked us to stop at a recruiting event").catch(() => {});
 
   const needsReview = await db.outreachDraft.count({ where: { status: "needs_review" } });
   const firstReviewDraft = await db.outreachDraft.findFirst({ where: { status: "needs_review" }, include: { lead: true } });
