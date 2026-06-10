@@ -39,6 +39,10 @@ export interface Integrations {
   // mailbox (works on serverless where SMTP ports are often blocked).
   resendApiKey: string;
   resendFrom: string; // verified sender, e.g. "outreach@yourdomain.org"
+
+  // Incoming-webhook URL (Slack/Discord/generic). Posted to when a lead's call
+  // is booked, so the team gets a real-time ping. Optional.
+  bookedWebhookUrl: string;
 }
 
 const INTEGRATIONS_KEY = "integrations";
@@ -66,6 +70,7 @@ function fromEnv(): Integrations {
     smartleadApiKey: process.env.SMARTLEAD_API_KEY || "",
     resendApiKey: process.env.RESEND_API_KEY || "",
     resendFrom: process.env.RESEND_FROM || "",
+    bookedWebhookUrl: process.env.BOOKED_WEBHOOK_URL || "",
   };
 }
 

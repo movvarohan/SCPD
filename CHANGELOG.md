@@ -12,6 +12,10 @@ project adheres to semantic versioning.
 - GitHub Actions CI: typecheck, tests, and production build on every push and PR.
 - Repository governance: `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`,
   this changelog, and `public/robots.txt`.
+- Resend email adapter so Autopilot can send over HTTPS without a personal inbox.
+- In-memory rate limiting on the help-chat and command-palette search APIs.
+- Booked-call webhook: posts to a Slack/Discord/generic incoming webhook when a
+  lead's call is marked booked.
 - `test`, `test:watch`, and `typecheck` npm scripts.
 
 ## [1.0.0]

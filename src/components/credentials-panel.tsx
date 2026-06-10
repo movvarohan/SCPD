@@ -24,6 +24,7 @@ export interface CredentialsView {
   imapPort: number;
   mailFromName: string;
   resendFrom: string;
+  bookedWebhookUrl: string;
   has: { anthropic: boolean; openai: boolean; apollo: boolean; clay: boolean; hunter: boolean; sam: boolean; tavily: boolean; gmailPassword: boolean; resend: boolean };
 }
 
@@ -52,6 +53,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
   const [mailFromName, setMailFromName] = React.useState(view.mailFromName);
   const [resendKey, setResendKey] = React.useState("");
   const [resendFrom, setResendFrom] = React.useState(view.resendFrom);
+  const [bookedWebhookUrl, setBookedWebhookUrl] = React.useState(view.bookedWebhookUrl);
 
   const [llmTest, setLlmTest] = React.useState<TestState>(null);
   const [apolloTest, setApolloTest] = React.useState<TestState>(null);
@@ -78,6 +80,7 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
         mailFromName,
         resendApiKey: resendKey,
         resendFrom,
+        bookedWebhookUrl,
       });
       // Clear secret inputs after save (they're persisted server-side).
       setAnthropicKey(""); setOpenaiKey(""); setApolloKey(""); setHunterKey(""); setSamKey(""); setTavilyKey(""); setGmailPassword(""); setResendKey("");
@@ -258,6 +261,24 @@ export function CredentialsPanel({ view }: { view: CredentialsView }) {
           <Button variant="outline" size="sm" onClick={() => runTest(testEmail, setEmailTest)} disabled={pending}>
             <Plug className="h-3.5 w-3.5" /> Save & test mailbox
           </Button>
+        </section>
+
+        <section className="space-y-3 border-t border-slate-100 pt-4">
+          <h4 className="text-sm font-semibold text-slate-800">Notifications</h4>
+          <div>
+            <Label>Booked-call webhook URL (optional)</Label>
+            <Input
+              value={bookedWebhookUrl}
+              onChange={(e) => setBookedWebhookUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/…"
+              className="mt-1"
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Paste a Slack or Discord incoming-webhook URL. When a lead&apos;s call is
+            marked <span className="font-medium">booked</span>, the team gets an
+            instant ping. Leave blank to disable.
+          </p>
         </section>
 
         <div className="border-t border-slate-100 pt-4">

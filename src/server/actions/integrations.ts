@@ -26,7 +26,7 @@ export async function saveCredentials(overrides: IntegrationOverrides) {
     cleaned[k] = v;
   }
   // Allow provider selects + numeric ports through even if "unchanged".
-  for (const k of ["llmProvider", "emailProvider", "smtpPort", "imapPort", "mailFromName", "anthropicModel", "openaiModel"] as const) {
+  for (const k of ["llmProvider", "emailProvider", "smtpPort", "imapPort", "mailFromName", "anthropicModel", "openaiModel", "resendFrom", "bookedWebhookUrl", "gmailUser"] as const) {
     if (overrides[k] !== undefined) {
       // @ts-expect-error dynamic assignment
       cleaned[k] = overrides[k];

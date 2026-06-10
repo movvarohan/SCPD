@@ -8,6 +8,7 @@ import { getRuleWeights } from "./scoring";
 import { getCurrentUser } from "@/lib/auth";
 import { domainFromWebsite, enrichEmail, verifyEmail } from "@/lib/services/enrich";
 import { researchLead as runResearch } from "@/lib/services/research";
+import { notifyBookedCall } from "@/lib/services/notify";
 import { bestEmailOf } from "@/lib/utils";
 import { encodeJson as enc } from "@/lib/serialization";
 import type { LeadStatus } from "@/lib/types";
@@ -50,7 +51,8 @@ export async function updateLead(
 
 export async function setLeadStatus(id: string, status: LeadStatus) {
   const user = await getCurrentUser();
-  await db.lead.update({ where: { id }, data: { status } });
+  const prev = await db.lead.findUnique({ where: { id } });
+  const lead = await db.lead.update({ where: { id }, data: { status } });
   await db.interaction.create({
     data: {
       leadId: id,
@@ -59,6 +61,11 @@ export async function setLeadStatus(id: string, status: LeadStatus) {
       createdById: user?.id,
     },
   });
+
+  // Ping the team's webhook on the transition into "booked" (not on re-saves).
+  if (status === "booked" && prev?.status !== "booked") {
+    void notifyBookedCall(lead);
+  }
   revalidatePath("/leads");
   revalidatePath(`/leads/${id}`);
   revalidatePath("/tracking");

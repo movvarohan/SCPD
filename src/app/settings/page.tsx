@@ -70,6 +70,7 @@ export default async function SettingsPage() {
     imapPort: integ.imapPort,
     mailFromName: integ.mailFromName,
     resendFrom: integ.resendFrom,
+    bookedWebhookUrl: integ.bookedWebhookUrl,
     has: {
       anthropic: Boolean(integ.anthropicApiKey),
       openai: Boolean(integ.openaiApiKey),
