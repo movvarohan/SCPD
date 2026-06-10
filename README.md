@@ -21,6 +21,29 @@ scoring fit, drafting outreach, tracking replies, assigning calls) while keeping
 
 ---
 
+## 🚀 Live deployment
+
+Production runs at **https://sc-sourcing-engine.vercel.app** (Vercel + Neon
+Postgres). For the non-technical handoff — getting started, inviting the team,
+FAQ, and the in-app **Help assistant** at
+[/help](https://sc-sourcing-engine.vercel.app/help) — see
+[`DIRECTOR_GUIDE.md`](DIRECTOR_GUIDE.md).
+
+Deployment facts:
+- **Build**: `vercel-build` runs `prisma db push` against Neon (via `DIRECT_URL`),
+  then `next build`. Schema changes apply on deploy.
+- **Cron**: `vercel.json` schedules `/api/cron/follow-ups` daily (16:00 UTC);
+  Vercel sends `Authorization: Bearer CRON_SECRET` automatically.
+- **Bootstrap**: `GET /api/setup/seed?secret=<CRON_SECRET>` seeds a fresh
+  database with sample data (refuses to wipe existing data without `force=1`).
+- **Env vars** (set in the Vercel project): `DATABASE_URL`, `DIRECT_URL`,
+  `LLM_PROVIDER`, `ANTHROPIC_API_KEY`, `APOLLO_API_KEY`, `EMAIL_PROVIDER`,
+  `OPEN_SIGNUP`, `CRON_SECRET`, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`.
+- **Hosted limitation**: the two Playwright scraper connectors (Y Combinator,
+  bring-your-own-URL) need a real browser and only run from a local copy.
+- **Redeploy**: `npx vercel deploy --prod` from the repo (or connect the GitHub
+  repo in the Vercel dashboard for deploys on push).
+
 ## 🎬 Demo & onboarding video
 
 A full, step-by-step walkthrough (~10.7 min, 1080p) is committed at
@@ -49,7 +72,7 @@ along. Regenerate it any time with the pipeline in
 
 - **Next.js 15** (App Router) + **TypeScript**
 - **Tailwind CSS** with a custom shadcn-style component set
-- **Prisma** ORM with **SQLite** (designed to migrate to Postgres/Supabase)
+- **Prisma** ORM with **PostgreSQL** (Neon in production; any Postgres locally)
 - **Server Actions** for all backend logic
 - **recharts** for dashboard charts, **papaparse** for CSV parsing
 - Pluggable **provider adapters** for Apollo, Clay, LLM (OpenAI/Anthropic), and Email (Gmail/Smartlead)
@@ -60,7 +83,7 @@ along. Regenerate it any time with the pipeline in
 
 ```bash
 npm install
-cp .env.example .env      # defaults run fully offline with mock providers
+cp .env.example .env      # add a Postgres DATABASE_URL (free Neon works)
 npm run setup             # prisma generate + db push + seed
 npm run dev               # http://localhost:3000
 ```
@@ -69,7 +92,7 @@ npm run dev               # http://localhost:3000
 
 ```bash
 npm run db:generate       # prisma generate
-npm run db:push           # create the SQLite schema
+npm run db:push           # create the schema in your Postgres DB
 npm run db:seed           # seed 5 users, 3 PD profiles, 30 leads, 10 drafts, rules, templates
 ```
 
@@ -80,8 +103,9 @@ npm run db:reset          # wipe + re-push + re-seed
 npm run build && npm start # production build
 ```
 
-> The app runs end-to-end **with no API keys**. Mock providers generate
-> realistic leads, enrichment, and email drafts.
+> The app runs end-to-end **with no API keys** (mock providers generate
+> realistic leads, enrichment, and drafts). It does need a Postgres database —
+> a free [Neon](https://neon.tech) project takes ~2 minutes.
 
 ---
 

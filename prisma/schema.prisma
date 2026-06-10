@@ -2,16 +2,12 @@
 //
 // NOTE ON DATABASE PROVIDER
 // -------------------------
-// This MVP uses SQLite so it runs locally with zero external setup.
-// The schema is intentionally written to migrate cleanly to Postgres
-// (Supabase or self-hosted). To migrate:
-//   1. Change `provider = "sqlite"` to `provider = "postgresql"` below.
-//   2. Set DATABASE_URL to your Postgres connection string in .env.
-//   3. (Optional) Convert the JSON-string columns documented below to
-//      native `Json` columns and the comma-string columns to `String[]`.
-//   4. Run `prisma migrate dev`.
+// Production uses PostgreSQL (Neon via Vercel). DATABASE_URL is the pooled
+// connection; DIRECT_URL is the unpooled endpoint used for `prisma db push`.
+// For local development, point both at any Postgres (a free Neon project
+// works great — same URL for both is fine).
 //
-// SQLite has no enum / array / native-json types, so:
+// Storage conventions (kept portable / simple to query):
 //   - "enum-like" fields are stored as String with allowed values documented.
 //   - list fields (industries, functions) are stored as comma-separated String.
 //   - JSON blobs (scoreBreakdown, warnings) are stored as JSON-encoded String.
@@ -22,8 +18,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Unpooled endpoint for schema pushes/migrations (Neon: remove "-pooler").
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,5 @@
+# Not needed at runtime — keeps the upload small
+scripts/
+*.mp4
+prisma/dev.db
+.env*
