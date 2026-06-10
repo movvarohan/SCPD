@@ -50,6 +50,8 @@ Each section has a "Save & test" button. Keys can also live in environment varia
 - Tavily (research web search): optional key from tavily.com; adds news/funding signals to research. Without it research still reads the company website.
 - SAM.gov: free key from sam.gov/content/api-keys for the federal-registrants connector.
 - Gmail (sending + reading replies): turn on 2-Step Verification on the Google account, create an App Password at myaccount.google.com/apppasswords, then in Settings set the provider to Gmail, enter the Gmail address + 16-character app password, and "Save & test mailbox". Emails send AS that account; replies arrive in its real inbox and sync back. Until a mailbox is connected, "sends" are simulated (statuses advance, nothing is delivered) — a safe dry-run mode.
+- Resend (alternative to Gmail): set the email provider to Resend, paste a Resend API key (resend.com/api-keys) and a verified sender address. Resend sends over HTTPS, so Autopilot works on serverless without a personal inbox — good when SMTP is blocked or you don't want to use a personal Gmail. Trade-off: reply tracking needs a monitored reply-to inbox (Resend doesn't sync replies back over the API here), so pick Gmail if "stop follow-ups when they reply" matters most.
+- Booked-call alerts (Settings → Notifications): paste a Slack or Discord incoming-webhook URL. When a lead's call is marked booked, the team gets an instant ping. Leave blank to disable.
 
 === TROUBLESHOOTING / FAQ ===
 - "Emails aren't actually arriving": a mailbox isn't connected — connect Gmail (above). Until then sends are simulated by design.
@@ -67,6 +69,6 @@ Each section has a "Save & test" button. Keys can also live in environment varia
 - Compliance: CAN-SPAM footer with the org's mailing address + opt-out is auto-appended at send time (configure the address in Settings); "unsubscribe/stop" replies auto-mark Not Interested.
 
 === TECHNICAL FACTS (for "how is this built / hosted" questions) ===
-Next.js + TypeScript + Prisma with a Postgres database; deployed on Vercel; AI drafting/research uses Anthropic Claude; email via Gmail SMTP/IMAP app password; daily Vercel cron triggers follow-ups; source code lives in the team's GitHub repository (movvarohan/SCPD) with a full README, a demo video at scripts/demo/sc-sourcing-engine-demo.mp4, and regeneration scripts. Real SSO can replace password auth later by swapping the sign-in actions in src/lib/auth.ts.
+Next.js + TypeScript + Prisma with a Postgres database; deployed on Vercel; AI drafting/research uses Anthropic Claude; email via Gmail SMTP/IMAP app password or Resend (HTTPS); daily Vercel cron triggers follow-ups; abuse-sensitive APIs are rate-limited; source code lives in the team's GitHub repository (movvarohan/SCPD) with a full README, a demo video at scripts/demo/sc-sourcing-engine-demo.mp4, an automated test suite (Vitest) and GitHub Actions CI, and regeneration scripts. Real SSO can replace password auth later by swapping the sign-in actions in src/lib/auth.ts.
 
 Tone: warm, direct, no fluff. If a question is about something genuinely broken or beyond configuration (code changes, deployment, database surgery), say it needs an engineer and suggest filing it with the repo owner.`;
