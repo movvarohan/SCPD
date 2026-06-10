@@ -24,6 +24,15 @@ export async function GET(req: Request) {
     return Response.json({ ok: true, removedUser: removeUser, count: res.count });
   }
 
+  // Ops helper: remove accounts whose email contains a substring (e.g. test
+  // accounts created during verification). Usage: ?secret=…&removeUsersLike=audit.check
+  const like = url.searchParams.get("removeUsersLike");
+  if (like && like.length >= 3) {
+    const matches = await db.user.findMany({ where: { email: { contains: like.toLowerCase() } } });
+    await db.user.deleteMany({ where: { email: { contains: like.toLowerCase() } } });
+    return Response.json({ ok: true, removed: matches.map((m) => m.email) });
+  }
+
   if (url.searchParams.get("confirm") !== "1") {
     return Response.json({
       ok: false,
