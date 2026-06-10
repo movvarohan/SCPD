@@ -106,6 +106,7 @@ export async function deleteLead(id: string) {
 // Emails are stored as GUESSED (verifiedEmail stays false) with a warning note.
 export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: number; skipped: number; verified: number }> {
   const user = await getCurrentUser();
+  // Cap each run so a large database can't blow the serverless time budget.
   const leads = await db.lead.findMany({
     where: {
       AND: [
@@ -114,6 +115,7 @@ export async function enrichMissingEmails(): Promise<{ ok: boolean; updated: num
         { OR: [{ companyWebsite: { not: null } }, { companyName: { not: null } }] },
       ],
     },
+    take: 50,
   });
 
   let updated = 0;

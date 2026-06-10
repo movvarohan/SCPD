@@ -24,7 +24,7 @@ export function AuthBrandPanel() {
           Agent-assisted client sourcing — find leads, research them, draft outreach, and book calls. With a human in the loop.
         </p>
         <ul className="mt-8 space-y-3 text-[15px] text-white/80">
-          {["12 public-data sources + your alumni sheet", "Grounded research, never fabricated", "Every email reviewed before it sends"].map((t) => (
+          {["12 public-data sources + your alumni sheet", "Grounded research, never fabricated", "Fully automated, with a one-click kill switch"].map((t) => (
             <li key={t} className="flex items-center gap-3">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/15"><Check className="h-3 w-3" /></span>
               {t}

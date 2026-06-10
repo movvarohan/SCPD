@@ -1,6 +1,6 @@
 {
   "name": "sc-sourcing-engine",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "SC Sourcing Engine - agent-assisted client sourcing for Stanford Consulting PDs",
   "scripts": {

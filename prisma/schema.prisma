@@ -36,6 +36,9 @@ model User {
   role      String   @default("PD")
   // scrypt hash ("salt:hex"). Null only for legacy rows; login requires it.
   passwordHash String?
+  // Brute-force protection: consecutive failures + optional lockout window.
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
   createdAt DateTime @default(now())
 
   pdProfile     PDProfile?
@@ -56,6 +59,33 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// One-time password-reset links issued by admins from Team & invites.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Workspace audit trail: who did what, when (auth + team + automation events).
+model AuditEvent {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actorName String?
+  // e.g. "auth.signin", "auth.signin_failed", "auth.signup", "team.invite_created",
+  //      "team.role_changed", "team.member_removed", "auth.password_reset",
+  //      "automation.autosend_updated", "automation.paused", "settings.keys_saved"
+  action    String
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // Team invites: admin creates one per email+role; the link /join/<token>

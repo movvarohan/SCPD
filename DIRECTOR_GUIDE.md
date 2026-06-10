@@ -2,7 +2,7 @@
 
 Welcome! This is your team's tool for client sourcing: it finds leads, researches
 them, drafts personalized outreach with AI, and tracks everything through to a
-booked call — while keeping a person in control of every email.
+booked call — automated end to end, with a one-click kill switch whenever you want to slow down.
 
 **The app:** https://sc-sourcing-engine.vercel.app
 
@@ -62,9 +62,12 @@ connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
    never made up) and **Enrich missing emails**.
 3. **Draft** — on *Outreach*, select leads, pick the email type/goal/tone, and
    Generate. Claude writes a first email + two follow-ups from real facts only.
-4. **Review & send** — the *Review Queue* shows every draft with full context.
-   Edit, **Approve & send**, regenerate, or reject. Nothing sends without
-   approval (unless you later enable auto-send — see below).
+4. **Sending is automatic** — by default, generated drafts send right away
+   (once Gmail is connected). **Autopilot** even picks your top leads daily,
+   researches them, writes the email, and sends it — fully hands-off. The
+   *Review Queue* only collects exceptions (e.g. a lead with no email). Prefer
+   to approve everything yourself? Turn **Automatic sending OFF** in Settings →
+   Auto-send rules and every draft waits for your approval instead.
 5. **Track** — *Sending & Tracking*: statuses, **Sync replies from inbox**
    (opt-outs are honored automatically), and follow-ups on a day-3 / day-7
    schedule that **stops the moment someone replies**. A scheduled job also runs
@@ -74,10 +77,11 @@ connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
 
 ## 4 · Power features (when you're ready)
 
-- **Auto-send** (Settings → Auto-send rules, off by default): drafts matching
-  your rule (industry, company size, role, minimum score) send automatically and
-  skip review — guarded by a verified-email requirement, a warnings check, and a
-  daily cap. The dashboard shows a live counter and a one-click **Pause**.
+- **Automation** (Settings → Auto-send rules, **on by default**): matching
+  drafts send immediately, and **Autopilot** drafts + sends for your top leads
+  daily. Tune the rule (industry, size, role, min score), the daily cap, and the
+  optional guardrails (verified-email-only, skip-warnings). The dashboard shows a
+  live counter and a one-click **Pause** that stops everything instantly.
 - **Scoring** (Scoring Rules): tune what makes a lead "High priority", then
   **Re-score all leads**.
 - **Guardrails** (Settings): the "Allowed claims" box controls what the AI may
@@ -87,8 +91,18 @@ connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
 
 ## 5 · FAQ
 
-**Emails aren't arriving.** Gmail isn't connected yet — see section 2. Until
-then, sends are simulated on purpose.
+**Emails aren't arriving.** Gmail isn't connected yet — see section 2. Until a
+mailbox is connected, automation holds and sends are simulated on purpose (so
+nothing goes out before you're ready). Connect Gmail and it sends for real.
+
+**I don't want it fully automated yet.** Settings → Auto-send rules → turn
+**Automatic sending OFF** (and Autopilot off). Every draft then waits in the
+Review Queue for you to approve. Flip it back on anytime.
+
+**Someone forgot their password.** Settings → Team & invites → click the key
+icon next to their name → send them the reset link (single use, 24h).
+
+**Tip:** press **⌘K / Ctrl-K** anywhere to jump to any page or search a lead.
 
 **A lead has no email address.** Public data sources never include emails.
 Use **Enrich missing emails** or the **Find email** button on the lead.

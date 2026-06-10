@@ -5,19 +5,15 @@ An **agent-assisted client sourcing tool** for Stanford Consulting Project Direc
 Most of the pain in sourcing isn't the client call — it's getting the first call.
 This app automates the annoying pre-call work (finding leads, enriching them,
 scoring fit, drafting outreach, tracking replies, assigning calls) while keeping
-**a human in the loop before any email is sent**.
+**fully automated outreach with a one-click kill switch** (or human approval if you prefer).
 
-> **Product stance:** by default this is *not* a fully autonomous emailer —
-> every outbound draft is routed to a Review Queue and must be explicitly
-> approved, to protect Stanford Consulting's brand.
->
-> **Optional auto-send:** admins can turn on **rules-based auto-send** in
-> Settings — drafts whose lead matches your criteria (industry, company size,
-> role, minimum score) and passes the guardrails (verified email, no
-> missing-data warnings, a daily cap) go out automatically and skip the queue;
-> everything else still goes to review. It's **off by default** and every
-> auto-send is logged. Use it deliberately: cold email at volume affects
-> deliverability and brand.
+> **Product stance:** the app is **automated by default** — generated drafts
+> send immediately, and **Autopilot** researches + drafts + sends for top leads
+> daily — with a one-click dashboard kill switch and a daily cap. The Review
+> Queue is an exception queue (drafts that couldn't auto-send). Prefer human
+> approval? Turn **Automatic sending OFF** in Settings and every draft waits for
+> review. Cold email at volume affects deliverability and brand — use the cap
+> and the allowed-claims guardrail deliberately.
 
 ---
 

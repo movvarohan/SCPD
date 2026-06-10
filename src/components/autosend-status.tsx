@@ -36,9 +36,9 @@ export function AutoSendStatus({
             <Zap className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-cardinal-900">Auto-send is ON</div>
+            <div className="text-sm font-semibold text-cardinal-900">Automation is ON</div>
             <div className="text-xs text-cardinal-800/80">
-              Matching drafts send automatically and skip review.{" "}
+              Drafts send automatically; Autopilot &amp; follow-ups run daily.{" "}
               <Link href="/settings" className="underline">Manage rules</Link>
             </div>
           </div>

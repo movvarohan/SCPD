@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Copy, Check, Trash2, Users } from "lucide-react";
+import { UserPlus, Copy, Check, Trash2, Users, KeyRound } from "lucide-react";
 import {
   Card, CardHeader, CardTitle, CardContent, Button, Input, Select, Label, Badge,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/toast";
-import { createInvite, revokeInvite, updateMemberRole, removeMember } from "@/server/actions/auth";
+import { createInvite, revokeInvite, updateMemberRole, removeMember, issuePasswordReset } from "@/server/actions/auth";
 import { initialsOf, formatDate, cn } from "@/lib/utils";
 
 export interface MemberDTO {
@@ -33,6 +33,7 @@ export function TeamPanel({
   const [role, setRole] = React.useState("PD");
   const [copied, setCopied] = React.useState<string | null>(null);
   const [newLink, setNewLink] = React.useState<string | null>(null);
+  const [resetLink, setResetLink] = React.useState<{ name: string; link: string } | null>(null);
 
   function invite(e?: React.FormEvent) {
     e?.preventDefault();
@@ -71,6 +72,15 @@ export function TeamPanel({
       const res = await removeMember(id);
       toast(res.ok ? `${name} removed.` : res.error ?? "Failed.", res.ok ? "success" : "error");
       router.refresh();
+    });
+  }
+
+  function resetPassword(id: string, name: string) {
+    start(async () => {
+      const res = await issuePasswordReset(id);
+      if (!res.ok) { toast(res.error ?? "Failed.", "error"); return; }
+      setResetLink({ name, link: `${baseUrl}/reset/${res.token}` });
+      toast(`Reset link created for ${name} — valid 24h, single use.`, "success");
     });
   }
 
@@ -140,6 +150,18 @@ export function TeamPanel({
           </div>
         )}
 
+        {resetLink && (
+          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+            <KeyRound className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="min-w-0 flex-1 truncate text-xs text-amber-800">
+              Password reset for <b>{resetLink.name}</b>: <span className="font-mono">{resetLink.link}</span>
+            </span>
+            <Button type="button" variant="outline" size="sm" onClick={() => copy(resetLink.link, "reset")}>
+              {copied === "reset" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />} Copy
+            </Button>
+          </div>
+        )}
+
         {/* Members */}
         <div>
           <Label>Members ({members.length})</Label>
@@ -168,6 +190,11 @@ export function TeamPanel({
                   </Select>
                 ) : (
                   <Badge tone={ROLE_TONE[m.role] ?? "blue"}>{m.role}</Badge>
+                )}
+                {isAdmin && (
+                  <Button variant="ghost" size="sm" onClick={() => resetPassword(m.id, m.name)} title="Issue password-reset link">
+                    <KeyRound className="h-3.5 w-3.5 text-slate-400" />
+                  </Button>
                 )}
                 {isAdmin && !m.isYou && (
                   <Button variant="ghost" size="sm" onClick={() => remove(m.id, m.name)} title="Remove member">

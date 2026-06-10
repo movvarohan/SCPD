@@ -3,6 +3,7 @@ import { getLLMProvider, type LLMMessage } from "@/lib/providers/llm";
 import { HELP_SYSTEM_PROMPT } from "@/lib/help-context";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // POST /api/help/chat  { messages: [{ role: "user"|"assistant", content }] }
 // Answers product/setup/troubleshooting questions using the embedded context.

@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 // checks presence — pages do the real lookup via getCurrentUser()).
 const AUTH_COOKIE = "sc-session";
 
-const PUBLIC_PREFIXES = ["/login", "/signup", "/join", "/api", "/_next", "/samples"];
+const PUBLIC_PREFIXES = ["/login", "/signup", "/join", "/reset", "/api", "/_next", "/samples"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

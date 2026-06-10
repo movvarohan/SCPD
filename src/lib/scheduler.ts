@@ -1,5 +1,6 @@
 import { getAutoSendConfig } from "@/lib/services/settings";
 import { runDueFollowUps } from "@/lib/services/followups";
+import { runAutopilot } from "@/lib/services/autopilot";
 
 // In-process scheduler: while "auto-run follow-ups" is enabled, it sends due
 // follow-ups on the configured interval — no button, no external cron. Works
@@ -26,6 +27,11 @@ export function startScheduler() {
       lastRun = Date.now();
       const r = await runDueFollowUps();
       if (r.sent > 0) console.log(`[scheduler] auto-sent ${r.sent} follow-up(s) of ${r.due} due`);
+      if (cfg.autopilot) {
+        const a = await runAutopilot();
+        if (a.sent > 0 || a.queuedForReview > 0)
+          console.log(`[scheduler] autopilot: ${a.sent} sent, ${a.queuedForReview} queued for review`);
+      }
     } catch (e) {
       console.error("[scheduler] error", e);
     } finally {

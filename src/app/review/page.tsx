@@ -7,6 +7,7 @@ import { fullNameOf, bestEmailOf } from "@/lib/utils";
 import { emailStatus } from "@/lib/providers/email";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function selectionReason(lead: {
   isSCAlum: boolean; isStanfordAlum: boolean; warmConnectionType: string;
@@ -59,7 +60,7 @@ export default async function ReviewPage() {
     <div>
       <PageHeader
         title="Review Queue"
-        description="Human approval before anything goes out. Edit, approve, regenerate, or reject each draft."
+        description="The exception queue: drafts that could not auto-send (no email, rule mismatch, send failure) wait here. Edit, approve & send, regenerate, or reject."
         actions={<Badge tone="amber">{dto.length} awaiting review</Badge>}
       />
       <ReviewQueue drafts={dto} emailLive={email.configured} />

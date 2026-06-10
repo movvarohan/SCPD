@@ -13,6 +13,7 @@ import { getEmailProvider } from "@/lib/providers/email";
 import { getOrgSettings, complianceFooter, getAutoSendConfig } from "@/lib/services/settings";
 import { runDueFollowUps } from "@/lib/services/followups";
 import { runReplySync } from "@/lib/services/replysync";
+import { audit } from "@/lib/services/audit";
 
 // --- Save credentials from the Settings panel ------------------------------
 export async function saveCredentials(overrides: IntegrationOverrides) {
@@ -32,6 +33,8 @@ export async function saveCredentials(overrides: IntegrationOverrides) {
     }
   }
   await saveIntegrations(cleaned);
+  const actor = await getCurrentUser();
+  await audit("settings.keys_saved", `Updated integration settings: ${Object.keys(cleaned).join(", ") || "none"}`, actor);
   revalidatePath("/settings");
   revalidatePath("/source");
   revalidatePath("/outreach");

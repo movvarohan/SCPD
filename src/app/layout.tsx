@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { AccountMenu } from "@/components/account-menu";
+import { CommandPalette, CommandPaletteHint } from "@/components/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     "Agent-assisted client sourcing for Stanford Consulting Project Directors.",
 };
 
-const AUTH_PREFIXES = ["/login", "/signup", "/join"];
+const AUTH_PREFIXES = ["/login", "/signup", "/join", "/reset"];
 
 export default async function RootLayout({
   children,
@@ -52,7 +53,7 @@ export default async function RootLayout({
                   </div>
                   <span className="text-sm font-semibold">Sourcing Engine</span>
                 </div>
-                <div className="hidden md:block" />
+                <CommandPaletteHint />
                 <AccountMenu
                   current={{
                     id: current.id,
@@ -62,6 +63,7 @@ export default async function RootLayout({
                   }}
                 />
               </header>
+              <CommandPalette />
               <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { SettingsForm } from "@/components/settings-form";
 import { CredentialsPanel } from "@/components/credentials-panel";
 import { AutoSendPanel } from "@/components/autosend-panel";
 import { TeamPanel } from "@/components/team-panel";
+import { AuditPanel } from "@/components/audit-panel";
 import { getCurrentUser, can } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getOrgSettings, getAutoSendConfig } from "@/lib/services/settings";
@@ -14,6 +15,7 @@ import { clayStatus } from "@/lib/providers/clay";
 import { emailStatus } from "@/lib/providers/email";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const PERMISSIONS = [
   {
@@ -47,6 +49,9 @@ export default async function SettingsPage() {
     db.invite.findMany({ where: { acceptedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }),
     headers(),
   ]);
+  const auditEvents = can(current, "manage_team")
+    ? await db.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 50 })
+    : [];
 
   // Build the absolute base URL for invite links from the request.
   const host = hdrs.get("host") ?? "localhost:3000";
@@ -120,6 +125,16 @@ export default async function SettingsPage() {
       <div className="mt-4">
         <CredentialsPanel view={credentialsView} />
       </div>
+      {can(current, "manage_team") && (
+        <div className="mt-4">
+          <AuditPanel
+            events={auditEvents.map((e) => ({
+              id: e.id, action: e.action, detail: e.detail,
+              actorName: e.actorName, createdAt: e.createdAt.toISOString(),
+            }))}
+          />
+        </div>
+      )}
     </div>
   );
 }

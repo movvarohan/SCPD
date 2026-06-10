@@ -8,6 +8,7 @@ import { fullNameOf } from "@/lib/utils";
 import { Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function OutreachPage() {
   const [user, leads, , autoSend] = await Promise.all([
@@ -27,7 +28,7 @@ export default async function OutreachPage() {
     <div>
       <PageHeader
         title="Outreach Generator"
-        description="Select leads and generate personalized first emails and follow-ups. Drafts route to the Review Queue unless they match an auto-send rule."
+        description="Select leads and generate personalized outreach. Matching drafts send immediately; only exceptions wait in the Review Queue."
       />
       {autoSend.enabled && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-cardinal-200 bg-cardinal-50 px-4 py-2.5 text-[13px] text-cardinal-800">

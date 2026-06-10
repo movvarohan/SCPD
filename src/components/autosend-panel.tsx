@@ -47,14 +47,14 @@ export function AutoSendPanel({ config, emailLive }: { config: AutoSendConfig; e
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-[13px] text-slate-500">
-          When on, a generated draft is <span className="font-medium text-slate-700">sent automatically</span> — skipping the Review Queue — if its lead matches every rule below and passes the guardrails. Everything else still goes to review.
+          Outreach is <span className="font-medium text-slate-700">fully automated</span>: generated drafts send immediately when they match the rules below, and Autopilot drafts &amp; sends for your top leads daily. The Review Queue catches only exceptions. Pause everything any time from the dashboard.
         </p>
 
         <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
           <input type="checkbox" checked={cfg.enabled} onChange={(e) => set("enabled", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
           <div>
-            <div className="text-sm font-semibold text-slate-800">Enable automatic sending</div>
-            <div className="text-xs text-slate-500">Off by default. Turn on only when you trust the rule + guardrails.</div>
+            <div className="text-sm font-semibold text-slate-800">Automatic sending</div>
+            <div className="text-xs text-slate-500">On by default. Turning this off routes every draft to the Review Queue for manual approval.</div>
           </div>
         </label>
 
@@ -155,6 +155,23 @@ export function AutoSendPanel({ config, emailLive }: { config: AutoSendConfig; e
                 )}
               </div>
             </>
+          )}
+        </div>
+
+        {/* Autopilot */}
+        <div className="rounded-lg border border-slate-200 p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+            <input type="checkbox" checked={cfg.autopilot} onChange={(e) => set("autopilot", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-cardinal-700" />
+            Autopilot — fully hands-off outreach
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            Once a mailbox is connected, a daily job picks your top-scored uncontacted leads, researches them, writes the email, and sends it — within the daily cap. Anything it can&apos;t send lands in the Review Queue.
+          </p>
+          {cfg.autopilot && (
+            <div className="mt-2">
+              <Label>Leads per day</Label>
+              <Input type="number" value={cfg.autopilotDailyTarget} onChange={(e) => set("autopilotDailyTarget", Number(e.target.value))} className="mt-1 w-28" />
+            </div>
           )}
         </div>
 

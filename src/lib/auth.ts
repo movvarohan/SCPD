@@ -22,6 +22,7 @@ export async function createSession(userId: string): Promise<void> {
   store.set(AUTH_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   });

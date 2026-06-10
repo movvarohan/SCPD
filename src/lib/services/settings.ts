@@ -68,22 +68,32 @@ export interface AutoSendConfig {
   // Hands-off automation: a background scheduler runs due follow-ups itself.
   autoRunFollowUps: boolean;
   runIntervalMinutes: number;
+  // Autopilot: the daily job picks top leads, researches, drafts, and sends —
+  // no human action at all. Only acts when a real mailbox is connected.
+  autopilot: boolean;
+  autopilotDailyTarget: number;
 }
 
+// FULLY AUTOMATED BY DEFAULT: generated drafts send immediately (the Review
+// Queue catches only exceptions, e.g. leads with no email address), follow-ups
+// run on their own, and Autopilot drafts+sends for top leads daily once a
+// mailbox is connected. The dashboard kill-switch pauses everything instantly.
 export const DEFAULT_AUTO_SEND: AutoSendConfig = {
-  enabled: false,
+  enabled: true,
   industries: [],
   companySizes: [],
   seniorities: [],
-  minScore: 4,
-  requireVerifiedEmail: true,
-  skipIfWarnings: true,
-  dailyCap: 25,
+  minScore: 0,
+  requireVerifiedEmail: false,
+  skipIfWarnings: false,
+  dailyCap: 100,
   autoFollowUps: true,
   followUpDays1: 3,
   followUpDays2: 7,
-  autoRunFollowUps: false,
+  autoRunFollowUps: true,
   runIntervalMinutes: 60,
+  autopilot: true,
+  autopilotDailyTarget: 20,
 };
 
 const AUTO_SEND_KEY = "auto_send";

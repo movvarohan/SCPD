@@ -14,6 +14,7 @@ import { SENIORITY_LABELS } from "@/lib/types";
 import { Linkedin, Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type SP = Record<string, string | undefined>;
 

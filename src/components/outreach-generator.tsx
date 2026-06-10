@@ -186,7 +186,7 @@ export function OutreachGenerator({
               </p>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">Each draft goes to the Review Queue — nothing is sent automatically.</p>
+            <p className="text-xs text-slate-400">Automation is off — drafts will wait in the Review Queue for approval.</p>
           )}
 
           <Button className="w-full" onClick={generate} disabled={pending}>

@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/autopilot",
+      "schedule": "30 15 * * *"
+    },
+    {
       "path": "/api/cron/follow-ups",
       "schedule": "0 16 * * *"
     }

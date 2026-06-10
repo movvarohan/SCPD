@@ -110,7 +110,8 @@ export function Sidebar({ role }: { role: string }) {
       </nav>
 
       <div className="border-t border-slate-100 px-5 py-3 text-[11px] leading-relaxed text-slate-400">
-        Human review required before any email is sent.
+        Automated outreach — pause any time from the dashboard kill switch.
+        <div className="mt-1 text-[10px] text-slate-300">v1.0.0</div>
       </div>
     </aside>
   );
