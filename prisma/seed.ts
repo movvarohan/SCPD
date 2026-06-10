@@ -2,6 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { DEFAULT_SCORING_RULES, scoreLead } from "../src/lib/services/scoring";
 import { generateMockLead } from "../src/lib/providers/mockData";
 import { listToString, encodeJson } from "../src/lib/serialization";
+import { hashPassword } from "../src/lib/password";
+
+// All seeded demo accounts share this password (documented in the README).
+const DEMO_PASSWORD = "demo1234";
 
 const db = new PrismaClient();
 
@@ -76,13 +80,16 @@ async function main() {
   await db.scoringRule.deleteMany();
   await db.emailTemplate.deleteMany();
   await db.importJob.deleteMany();
+  await db.session.deleteMany();
+  await db.invite.deleteMany();
 
   // --- Users -------------------------------------------------------------
+  const demoHash = hashPassword(DEMO_PASSWORD);
   const admin = await db.user.create({
-    data: { name: "Sasha Lead", email: "admin@stanfordconsulting.org", role: "ADMIN" },
+    data: { name: "Sasha Lead", email: "admin@stanfordconsulting.org", role: "ADMIN", passwordHash: demoHash },
   });
   const reviewer = await db.user.create({
-    data: { name: "Riley Reviewer", email: "reviewer@stanfordconsulting.org", role: "REVIEWER" },
+    data: { name: "Riley Reviewer", email: "reviewer@stanfordconsulting.org", role: "REVIEWER", passwordHash: demoHash },
   });
 
   const pdSpecs = [
@@ -115,7 +122,7 @@ async function main() {
   const pds = [];
   for (const spec of pdSpecs) {
     const user = await db.user.create({
-      data: { name: spec.name, email: spec.email, role: "PD" },
+      data: { name: spec.name, email: spec.email, role: "PD", passwordHash: demoHash },
     });
     await db.pDProfile.create({
       data: {

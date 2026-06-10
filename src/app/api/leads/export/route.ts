@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { fullNameOf, bestEmailOf } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,11 @@ function csvCell(v: unknown): string {
   return s;
 }
 
-// GET /api/leads/export -> downloads all leads as CSV.
+// GET /api/leads/export -> downloads all leads as CSV. Requires a session.
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+
   const leads = await db.lead.findMany({
     orderBy: [{ score: "desc" }],
     include: { assignedPD: true },

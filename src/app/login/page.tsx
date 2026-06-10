@@ -5,10 +5,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Sign in · SC Sourcing Engine" };
 
 export default async function LoginPage() {
-  const users = await db.user.findMany({ orderBy: { role: "asc" } });
-  return (
-    <LoginForm
-      users={users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role }))}
-    />
-  );
+  // Show the demo-credentials hint only when the seeded demo admin exists.
+  const demo = await db.user.findUnique({ where: { email: "admin@stanfordconsulting.org" } });
+  return <LoginForm demoHint={Boolean(demo?.passwordHash)} />;
 }

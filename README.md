@@ -85,20 +85,30 @@ npm run build && npm start # production build
 
 ---
 
-## Roles (mock auth)
+## Accounts, roles & team invites
 
-Auth is mocked for the MVP via a cookie. Use the **user switcher in the top-right**
-to switch between seeded users and see role-based UI.
+Real password auth with server-side sessions (scrypt-hashed passwords, opaque
+session tokens in the DB, 30-day expiry):
+
+- **Sign up** at `/signup` — creates an **Admin** account. Set `OPEN_SIGNUP=false`
+  in `.env` once your team is onboarded to make new accounts invite-only.
+- **Invite your team** from **Settings → Team & invites**: enter an email + role,
+  copy the one-time `/join/<token>` link (expires in 14 days). The invitee sets
+  their name + password and lands in the app. Admins can also change roles and
+  remove members there.
+- **Demo accounts** (from the seed) all use password **`demo1234`**:
+  `admin@stanfordconsulting.org`, `reviewer@…`, `maya@…`, `leo@…`, `nina@…`.
 
 | Role | Can do |
 | --- | --- |
-| **Admin / sourcing lead** | Import, source, configure scoring, approve/send, assign, full dashboard |
+| **Admin / sourcing lead** | Import, source, configure scoring, approve/send, assign, manage team, full dashboard |
 | **PD** | View assigned leads, update status/notes, manage own availability & interests |
 | **Reviewer** | Review, approve/reject/edit/regenerate drafts |
 
-Swapping in real auth (NextAuth / Supabase Auth / Clerk) only requires replacing
-`getCurrentUser()` in [`src/lib/auth.ts`](src/lib/auth.ts) — the rest of the app
-only depends on the returned `User` shape.
+Swapping in SSO (NextAuth / Supabase Auth / Clerk) only requires replacing the
+sign-in/sign-up actions and keeping `createSession()` in
+[`src/lib/auth.ts`](src/lib/auth.ts) — the rest of the app only depends on
+`getCurrentUser()`.
 
 ---
 

@@ -36,12 +36,43 @@ model User {
   email     String   @unique
   // Role: "ADMIN" | "PD" | "REVIEWER"
   role      String   @default("PD")
+  // scrypt hash ("salt:hex"). Null only for legacy rows; login requires it.
+  passwordHash String?
   createdAt DateTime @default(now())
 
   pdProfile     PDProfile?
   assignedLeads Lead[]         @relation("AssignedPD")
   reviews       OutreachDraft[] @relation("Reviewer")
   interactions  Interaction[]
+  sessions      Session[]
+  invitesSent   Invite[]       @relation("InvitedBy")
+}
+
+// Server-side sessions: the cookie stores an opaque token, validated in the DB.
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Team invites: admin creates one per email+role; the link /join/<token>
+// lets the invitee set their name + password.
+model Invite {
+  id          String    @id @default(cuid())
+  email       String
+  // "ADMIN" | "PD" | "REVIEWER"
+  role        String    @default("PD")
+  token       String    @unique
+  invitedById String?
+  invitedBy   User?     @relation("InvitedBy", fields: [invitedById], references: [id])
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
 }
 
 model PDProfile {

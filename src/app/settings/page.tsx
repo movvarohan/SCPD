@@ -1,7 +1,10 @@
+import { headers } from "next/headers";
 import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
 import { CredentialsPanel } from "@/components/credentials-panel";
 import { AutoSendPanel } from "@/components/autosend-panel";
+import { TeamPanel } from "@/components/team-panel";
+import { getCurrentUser, can } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getOrgSettings, getAutoSendConfig } from "@/lib/services/settings";
 import { getIntegrations } from "@/lib/credentials";
@@ -37,9 +40,18 @@ export default async function SettingsPage() {
     db.emailTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
 
-  const [llm, apollo, clay, email, integ, autoSend] = await Promise.all([
+  const [llm, apollo, clay, email, integ, autoSend, current, members, invites, hdrs] = await Promise.all([
     llmStatus(), apolloStatus(), clayStatus(), emailStatus(), getIntegrations(), getAutoSendConfig(),
+    getCurrentUser(),
+    db.user.findMany({ orderBy: [{ role: "asc" }, { createdAt: "asc" }] }),
+    db.invite.findMany({ where: { acceptedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } }),
+    headers(),
   ]);
+
+  // Build the absolute base URL for invite links from the request.
+  const host = hdrs.get("host") ?? "localhost:3000";
+  const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const baseUrl = `${proto}://${host}`;
 
   const credentialsView = {
     llmProvider: integ.llmProvider,
@@ -88,6 +100,20 @@ export default async function SettingsPage() {
         ]}
         permissions={PERMISSIONS}
       />
+      <div className="mt-4">
+        <TeamPanel
+          isAdmin={can(current, "manage_team")}
+          baseUrl={baseUrl}
+          members={members.map((m) => ({
+            id: m.id, name: m.name, email: m.email, role: m.role,
+            createdAt: m.createdAt.toISOString(), isYou: m.id === current?.id,
+          }))}
+          invites={invites.map((i) => ({
+            id: i.id, email: i.email, role: i.role, token: i.token,
+            expiresAt: i.expiresAt.toISOString(),
+          }))}
+        />
+      </div>
       <div className="mt-4">
         <AutoSendPanel config={autoSend} emailLive={email.configured} />
       </div>
