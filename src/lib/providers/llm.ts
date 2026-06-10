@@ -94,25 +94,46 @@ class AnthropicProvider implements LLMProvider {
   }
 }
 
+// Resolve which provider to actually use. An explicit LLM_PROVIDER wins when its
+// key is present; otherwise we auto-default to whichever real key is configured
+// (Anthropic preferred). This means just setting ANTHROPIC_API_KEY is enough —
+// you don't also have to set LLM_PROVIDER=anthropic.
+type ResolvedLLM =
+  | { provider: "anthropic"; key: string; model: string }
+  | { provider: "openai"; key: string; model: string }
+  | { provider: "mock" };
+
+function resolveLLM(c: Awaited<ReturnType<typeof getIntegrations>>): ResolvedLLM {
+  const explicit = (c.llmProvider || "").toLowerCase();
+  const anthropicKey = c.anthropicApiKey.trim();
+  const openaiKey = c.openaiApiKey.trim();
+
+  // Honour an explicit, usable choice first.
+  if (explicit === "anthropic" && anthropicKey)
+    return { provider: "anthropic", key: anthropicKey, model: c.anthropicModel || "claude-sonnet-4-6" };
+  if (explicit === "openai" && openaiKey)
+    return { provider: "openai", key: openaiKey, model: c.openaiModel || "gpt-4o-mini" };
+
+  // Otherwise auto-default to any real key that's present (Anthropic first).
+  if (anthropicKey)
+    return { provider: "anthropic", key: anthropicKey, model: c.anthropicModel || "claude-sonnet-4-6" };
+  if (openaiKey)
+    return { provider: "openai", key: openaiKey, model: c.openaiModel || "gpt-4o-mini" };
+
+  return { provider: "mock" };
+}
+
 export async function getLLMProvider(): Promise<LLMProvider> {
-  const c = await getIntegrations();
-  const provider = (c.llmProvider || "mock").toLowerCase();
-  if (provider === "openai" && c.openaiApiKey.trim()) {
-    return new OpenAIProvider(c.openaiApiKey.trim(), c.openaiModel || "gpt-4o-mini");
-  }
-  if (provider === "anthropic" && c.anthropicApiKey.trim()) {
-    return new AnthropicProvider(c.anthropicApiKey.trim(), c.anthropicModel || "claude-sonnet-4-6");
-  }
+  const r = resolveLLM(await getIntegrations());
+  if (r.provider === "anthropic") return new AnthropicProvider(r.key, r.model);
+  if (r.provider === "openai") return new OpenAIProvider(r.key, r.model);
   return new MockLLMProvider();
 }
 
 export async function llmStatus(): Promise<{ configured: boolean; mode: string }> {
-  const c = await getIntegrations();
-  const provider = (c.llmProvider || "mock").toLowerCase();
-  if (provider === "openai" && c.openaiApiKey.trim())
-    return { configured: true, mode: `openai · ${c.openaiModel}` };
-  if (provider === "anthropic" && c.anthropicApiKey.trim())
-    return { configured: true, mode: `anthropic · ${c.anthropicModel}` };
+  const r = resolveLLM(await getIntegrations());
+  if (r.provider === "anthropic") return { configured: true, mode: `anthropic · ${r.model}` };
+  if (r.provider === "openai") return { configured: true, mode: `openai · ${r.model}` };
   return { configured: false, mode: "mock" };
 }
 
