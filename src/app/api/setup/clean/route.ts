@@ -24,6 +24,23 @@ export async function GET(req: Request) {
     return Response.json({ ok: true, removedUser: removeUser, count: res.count });
   }
 
+  // Ops helper: clear fabricated LinkedIn URLs left by the old mock sourcing
+  // provider, which invented /in/first.last-NN slugs that 404. Targets only that
+  // exact pattern, so real CSV/Apollo URLs are untouched. Idempotent.
+  //   GET /api/setup/clean?secret=…&fixLinkedin=1
+  if (url.searchParams.get("fixLinkedin") === "1") {
+    const pattern = "^https://www\\.linkedin\\.com/in/[a-z]+\\.[a-z]+-[0-9]+$";
+    const matched = (await db.$queryRawUnsafe(
+      `SELECT count(*)::int AS n FROM "Lead" WHERE "linkedinUrl" ~ $1`,
+      pattern
+    )) as { n: number }[];
+    const updated = await db.$executeRawUnsafe(
+      `UPDATE "Lead" SET "linkedinUrl" = '' WHERE "linkedinUrl" ~ $1`,
+      pattern
+    );
+    return Response.json({ ok: true, fabricatedLinkedinCleared: updated, matched: matched[0]?.n ?? 0 });
+  }
+
   // Ops helper: remove accounts whose email contains a substring (e.g. test
   // accounts created during verification). Usage: ?secret=…&removeUsersLike=audit.check
   const like = url.searchParams.get("removeUsersLike");

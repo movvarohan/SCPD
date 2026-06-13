@@ -76,7 +76,9 @@ export function generateMockLead(seedIndex?: number): {
     fullName: `${first} ${last}`,
     email: `${handle}@${company.website}`,
     workEmail: `${handle}@${company.website}`,
-    linkedinUrl: `https://www.linkedin.com/in/${handle}-${(i % 90) + 10}`,
+    // No fabricated LinkedIn URL: an invented /in/ slug always 404s. Real
+    // LinkedIn URLs only come from a paid Apollo lookup or a user's own CSV.
+    linkedinUrl: "",
     title: role.title,
     seniority: role.seniority,
     companyName: company.name,
@@ -84,7 +86,8 @@ export function generateMockLead(seedIndex?: number): {
     industry: company.industry,
     location,
     companySize: company.size,
-    verifiedEmail: i % 3 !== 0,
+    // Mock emails are pattern guesses, never independently verified.
+    verifiedEmail: false,
     isStanfordAlum,
   };
 }

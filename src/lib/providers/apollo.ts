@@ -40,7 +40,9 @@ class MockApolloProvider implements ApolloProvider {
       industry: input.industry || filler.industry,
       location: input.location || filler.location,
       companySize: input.companySize || filler.companySize,
-      linkedinUrl: input.linkedinUrl || filler.linkedinUrl,
+      // Never inject a fabricated LinkedIn URL — keep only a real one the lead
+      // already carries (e.g. from a CSV or a paid Apollo result).
+      linkedinUrl: input.linkedinUrl,
       seniority: input.seniority || filler.seniority,
       verifiedEmail: input.verifiedEmail ?? Boolean(input.email || input.workEmail),
     };
