@@ -14,22 +14,17 @@ export interface ApolloProvider {
 }
 
 // --- Mock implementation ---------------------------------------------------
+// Without a paid Apollo key, the search API is unavailable. Rather than invent
+// fake people (which would 404 on LinkedIn and waste outreach), we return
+// nothing and tell the user how to get real leads. The 12 public-data
+// connectors and CSV import remain fully available.
 class MockApolloProvider implements ApolloProvider {
   readonly name = "apollo:mock";
+  readonly note =
+    "Apollo search needs a paid Apollo plan — no leads were sourced. Add a paid Apollo API key in Settings, or use a public-data connector (SEC, IRS 990, NPPES, Y Combinator, …) or a CSV import to add real leads.";
 
-  async searchPeople(criteria: SourcingCriteria): Promise<RawLead[]> {
-    const count = Math.max(1, Math.min(criteria.limit || 10, 100));
-    const results: RawLead[] = [];
-    for (let i = 0; i < count; i++) {
-      const base = generateMockLead();
-      if (criteria.industries.length) base.industry = criteria.industries[i % criteria.industries.length];
-      if (criteria.titles.length) base.title = criteria.titles[i % criteria.titles.length];
-      if (criteria.location) base.location = criteria.location;
-      if (criteria.companySize.length) base.companySize = criteria.companySize[i % criteria.companySize.length];
-      const isAlum = criteria.stanfordPreference ? i % 2 === 0 : base.isStanfordAlum;
-      results.push({ ...base, source: "apollo", isStanfordAlum: isAlum, warmConnectionType: isAlum ? "alumni" : "none" });
-    }
-    return results;
+  async searchPeople(): Promise<RawLead[]> {
+    return [];
   }
 
   async enrichPerson(input: RawLead): Promise<EnrichedLead> {
@@ -149,10 +144,9 @@ function mapPerson(p: ApolloPerson): RawLead {
 
 class RealApolloProvider implements ApolloProvider {
   readonly name = "apollo:live";
-  // Set when a live call fails and we fall back to mock data, so the UI can
-  // explain what happened (e.g. free-plan restriction).
+  // Set when a live search is unavailable (e.g. free-plan restriction) so the
+  // UI can explain why no leads were sourced.
   public note: string | null = null;
-  private mock = new MockApolloProvider();
   constructor(private apiKey: string) {}
 
   private async post(path: string, body: unknown) {
@@ -193,13 +187,13 @@ class RealApolloProvider implements ApolloProvider {
       this.note = null;
       return people.slice(0, perPage).map(mapPerson);
     } catch (err) {
-      // Free Apollo plans block the search API. Rather than failing the whole
-      // sourcing run, fall back to mock leads and surface why.
+      // Free Apollo plans block the search API. We never fabricate people to
+      // fill the gap — return nothing and explain how to get real leads.
       const msg = (err as Error).message;
       this.note = msg.includes("API_INACCESSIBLE") || msg.includes("free plan")
-        ? "Apollo search requires a paid plan — used mock leads instead. Upgrade at app.apollo.io to pull real leads."
-        : `Apollo search failed (${msg.slice(0, 120)}) — used mock leads instead.`;
-      return this.mock.searchPeople(criteria);
+        ? "Apollo search requires a paid plan — no leads were sourced. Upgrade at app.apollo.io, or use a public-data connector or CSV import to add real leads."
+        : `Apollo search failed (${msg.slice(0, 120)}) — no leads were sourced. Try a public-data connector or CSV import.`;
+      return [];
     }
   }
 
