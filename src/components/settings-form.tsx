@@ -30,6 +30,7 @@ export function SettingsForm({
   const [pending, start] = React.useTransition();
   const [form, setForm] = React.useState<OrgSettings>(settings);
   const [industries, setIndustries] = React.useState(settings.targetIndustries.join(", "));
+  const [ccInput, setCcInput] = React.useState((settings.ccEmails ?? []).join(", "));
 
   function set<K extends keyof OrgSettings>(key: K, value: OrgSettings[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -40,6 +41,7 @@ export function SettingsForm({
       await updateOrgSettings({
         ...form,
         targetIndustries: industries.split(",").map((s) => s.trim()).filter(Boolean),
+        ccEmails: ccInput.split(",").map((s) => s.trim()).filter(Boolean),
       });
       toast("Settings saved.", "success");
       router.refresh();
@@ -85,6 +87,29 @@ export function SettingsForm({
               </label>
               <p className="mt-1 text-[11px] text-slate-400">Replies containing &quot;unsubscribe&quot;/&quot;stop&quot; are auto-marked Not Interested when you sync replies.</p>
             </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs font-semibold text-slate-700">Attachments &amp; CC</div>
+              <label className="mt-2 inline-flex items-start gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={form.attachOnePager} onChange={(e) => set("attachOnePager", e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cardinal-600" />
+                <span>
+                  Attach the SC one-pager to every <span className="font-medium">first</span> email
+                  <span className="block text-[11px] text-slate-400">Follow-ups are not re-attached. <a href="/attachments/sc-one-pager.pdf" target="_blank" rel="noreferrer" className="text-cardinal-700 hover:underline">View the current one-pager</a>.</span>
+                </span>
+              </label>
+              {form.attachOnePager && (
+                <div className="mt-2">
+                  <Label>Attachment filename (what recipients see)</Label>
+                  <Input value={form.onePagerLabel} onChange={(e) => set("onePagerLabel", e.target.value)} className="mt-1" />
+                </div>
+              )}
+              <div className="mt-3">
+                <Label>CC on every email (comma-separated)</Label>
+                <Input value={ccInput} onChange={(e) => setCcInput(e.target.value)} placeholder="e.g. you@stanford.edu, sourcing@stanfordconsulting.org" className="mt-1" />
+                <p className="mt-1 text-[11px] text-slate-400">Added to first emails and follow-ups. Useful for a shared inbox or a Stanford address for credibility. Leave blank for none.</p>
+              </div>
+            </div>
+
             <Button onClick={save} disabled={pending}><Save className="h-4 w-4" /> Save settings</Button>
           </CardContent>
         </Card>

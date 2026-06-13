@@ -3,6 +3,7 @@ import { getEmailProvider } from "@/lib/providers/email";
 import { getOrgSettings, getAutoSendConfig, complianceFooter, withinSendWindow } from "@/lib/services/settings";
 import { runReplySync } from "@/lib/services/replysync";
 import { isSuppressed } from "@/lib/services/suppression";
+import { buildOutboundExtras } from "@/lib/services/attachments";
 import { bestEmailOf } from "@/lib/utils";
 
 // Core follow-up runner — no request context, so it can be called from a server
@@ -19,6 +20,8 @@ export async function runDueFollowUps(createdById?: string): Promise<{ sent: num
 
   const settings = await getOrgSettings();
   const provider = await getEmailProvider();
+  // Follow-ups CC the same addresses but never re-attach the one-pager.
+  const followUpExtras = await buildOutboundExtras(settings, { initial: false });
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
 
@@ -60,7 +63,7 @@ export async function runDueFollowUps(createdById?: string): Promise<{ sent: num
       continue;
     }
 
-    const res = await provider.sendEmail(to, `Re: ${draft.subject}`, body + complianceFooter(settings));
+    const res = await provider.sendEmail(to, `Re: ${draft.subject}`, body + complianceFooter(settings), followUpExtras);
     if (!res.ok) continue;
     await db.lead.update({
       where: { id: lead.id },

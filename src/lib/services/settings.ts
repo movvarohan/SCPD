@@ -10,6 +10,14 @@ export interface OrgSettings {
   // CAN-SPAM: a physical mailing address + opt-out line appended at send time.
   mailingAddress: string;
   addComplianceFooter: boolean;
+  // CC'd on every outbound email (e.g. a shared SC inbox or a Stanford address
+  // for credibility). Applies to first emails and follow-ups.
+  ccEmails: string[];
+  // Attach the SC one-pager (public/attachments/sc-one-pager.pdf) to the FIRST
+  // email of each sequence. Follow-ups are not attached.
+  attachOnePager: boolean;
+  // Display filename recipients see for the attachment.
+  onePagerLabel: string;
 }
 
 export const DEFAULT_SETTINGS: OrgSettings = {
@@ -29,6 +37,9 @@ export const DEFAULT_SETTINGS: OrgSettings = {
   ],
   mailingAddress: "Stanford Consulting, 459 Lagunita Dr, Stanford, CA 94305",
   addComplianceFooter: true,
+  ccEmails: [],
+  attachOnePager: true,
+  onePagerLabel: "Stanford Consulting — Overview.pdf",
 };
 
 // CAN-SPAM footer appended to outbound emails: identifies the sender, gives a

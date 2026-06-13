@@ -12,6 +12,19 @@ export interface SendResult {
   error?: string;
 }
 
+// A file attached to an outbound email (e.g. the SC one-pager).
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
+// Optional per-send extras: CC recipients and attachments.
+export interface SendOptions {
+  cc?: string[];
+  attachments?: EmailAttachment[];
+}
+
 export interface ReplyEvent {
   to: string;
   from: string;
@@ -22,7 +35,7 @@ export interface ReplyEvent {
 
 export interface EmailProvider {
   readonly name: string;
-  sendEmail(to: string, subject: string, body: string): Promise<SendResult>;
+  sendEmail(to: string, subject: string, body: string, opts?: SendOptions): Promise<SendResult>;
   scheduleFollowUp(to: string, subject: string, body: string, sendAt: Date): Promise<SendResult>;
   getReplies(since?: Date): Promise<ReplyEvent[]>;
   verify(): Promise<{ ok: boolean; error?: string }>;
@@ -75,14 +88,20 @@ class GmailSmtpProvider implements EmailProvider {
     return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;white-space:pre-wrap">${escaped}</div>`;
   }
 
-  async sendEmail(to: string, subject: string, body: string): Promise<SendResult> {
+  async sendEmail(to: string, subject: string, body: string, opts?: SendOptions): Promise<SendResult> {
     try {
       const info = await this.transporter().sendMail({
         from: this.from(),
         to,
+        cc: opts?.cc?.length ? opts.cc : undefined,
         subject,
         text: body,
         html: this.html(body),
+        attachments: opts?.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
       });
       return { ok: true, providerMessageId: info.messageId };
     } catch (err) {
@@ -171,7 +190,7 @@ class ResendProvider implements EmailProvider {
     return this.c.gmailUser || undefined;
   }
 
-  async sendEmail(to: string, subject: string, body: string): Promise<SendResult> {
+  async sendEmail(to: string, subject: string, body: string, opts?: SendOptions): Promise<SendResult> {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -182,10 +201,16 @@ class ResendProvider implements EmailProvider {
         body: JSON.stringify({
           from: this.from(),
           to: [to],
+          cc: opts?.cc?.length ? opts.cc : undefined,
           subject,
           text: body,
           html: this.html(body),
           reply_to: this.replyTo(),
+          // Resend expects base64-encoded attachment content.
+          attachments: opts?.attachments?.map((a) => ({
+            filename: a.filename,
+            content: a.content.toString("base64"),
+          })),
         }),
       });
       if (!res.ok) {

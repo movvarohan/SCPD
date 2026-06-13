@@ -96,6 +96,10 @@ connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
   never auto-sent — they wait for you in the Review Queue.
 - **Analytics** (sidebar): sends & replies per week, the full funnel from lead
   to booked call, and which sources produce the best leads.
+- **Attachments & CC** (Settings → Organization & outreach identity): the SC
+  one-pager is attached to every first email automatically (follow-ups aren't
+  re-attached). Add CC addresses — a shared inbox or a Stanford address for
+  credibility — to be copied on every email.
 - **Export** — Leads → Export CSV any time. Your data is never locked in.
 
 ## 5 · FAQ

@@ -8,6 +8,7 @@ import { getOrgSettings, getAutoSendConfig, complianceFooter } from "@/lib/servi
 import { autoSendDecision } from "@/lib/services/autosend";
 import { lintEmail } from "@/lib/services/deliverability";
 import { isSuppressed } from "@/lib/services/suppression";
+import { buildOutboundExtras } from "@/lib/services/attachments";
 import { getEmailProvider } from "@/lib/providers/email";
 import { getCurrentUser } from "@/lib/auth";
 import { bestEmailOf } from "@/lib/utils";
@@ -50,6 +51,9 @@ export async function generateDraftsForLeads(params: GenerateParams) {
     });
   }
   const provider = autoSend.enabled ? await getEmailProvider() : null;
+  // CC + one-pager extras are the same for every lead in this batch (all first
+  // emails), so build them once.
+  const autoSendExtras = provider ? await buildOutboundExtras(settings, { initial: true }) : undefined;
 
   let created = 0;
   let autoSent = 0;
@@ -102,7 +106,7 @@ export async function generateDraftsForLeads(params: GenerateParams) {
     if (willAutoSend && provider) {
       const to = bestEmailOf(lead)!;
       const body = out.body + complianceFooter(settings);
-      const res = await provider.sendEmail(to, out.subject, body);
+      const res = await provider.sendEmail(to, out.subject, body, autoSendExtras);
       if (res.ok) {
         await db.lead.update({ where: { id: lead.id }, data: { status: "sent" } });
         await db.interaction.create({

@@ -14,6 +14,7 @@ import { getOrgSettings, complianceFooter, getAutoSendConfig } from "@/lib/servi
 import { runDueFollowUps } from "@/lib/services/followups";
 import { runReplySync } from "@/lib/services/replysync";
 import { isSuppressed } from "@/lib/services/suppression";
+import { buildOutboundExtras } from "@/lib/services/attachments";
 import { audit } from "@/lib/services/audit";
 
 // --- Save credentials from the Settings panel ------------------------------
@@ -129,7 +130,10 @@ export async function sendOutreach(
   const body = draft.body + complianceFooter(settings);
 
   const provider = await getEmailProvider();
-  const result = await provider.sendEmail(to, draft.subject, body);
+  // First email of the sequence: CC the configured addresses and attach the
+  // one-pager.
+  const extras = await buildOutboundExtras(settings, { initial: true });
+  const result = await provider.sendEmail(to, draft.subject, body, extras);
   if (!result.ok) {
     return { ok: false, message: `Send failed: ${result.error}` };
   }

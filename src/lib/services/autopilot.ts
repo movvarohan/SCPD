@@ -6,6 +6,7 @@ import { researchLead } from "@/lib/services/research";
 import { autoSendDecision } from "@/lib/services/autosend";
 import { lintEmail } from "@/lib/services/deliverability";
 import { isSuppressed } from "@/lib/services/suppression";
+import { buildOutboundExtras } from "@/lib/services/attachments";
 import { audit } from "@/lib/services/audit";
 import { encodeJson } from "@/lib/serialization";
 import { bestEmailOf } from "@/lib/utils";
@@ -41,6 +42,8 @@ export async function runAutopilot(): Promise<AutopilotResult> {
 
   const settings = await getOrgSettings();
   const provider = await getEmailProvider();
+  // CC + one-pager are the same for every Autopilot send (all first emails).
+  const outboundExtras = await buildOutboundExtras(settings, { initial: true });
 
   // Respect the shared daily cap (counts all sends today).
   const start = new Date();
@@ -133,7 +136,7 @@ export async function runAutopilot(): Promise<AutopilotResult> {
     });
 
     if (decision.send && to && lint.blockers.length === 0) {
-      const res = await provider.sendEmail(to, out.subject, out.body + complianceFooter(settings));
+      const res = await provider.sendEmail(to, out.subject, out.body + complianceFooter(settings), outboundExtras);
       if (res.ok) {
         await db.outreachDraft.update({ where: { id: draft.id }, data: { status: "sent" } });
         await db.lead.update({ where: { id: lead.id }, data: { status: "sent" } });
