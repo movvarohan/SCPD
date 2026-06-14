@@ -49,7 +49,7 @@ The app works out of the box, but two connections make it *real*. Both live in
 Already connected for you: **Claude (Anthropic)** writes the drafts and powers
 research and the Help assistant. An **Apollo** key is installed too — note it's
 a free-tier key, so Apollo sourcing returns realistic sample leads until the
-plan is upgraded (the app tells you this when it happens). The **12 public-data
+plan is upgraded (the app tells you this when it happens). The **13 public-data
 connectors** (SEC, IRS, NIH, FDA, federal spending, etc.) need no keys at all.
 
 ## 3 · The daily workflow

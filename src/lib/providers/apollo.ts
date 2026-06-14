@@ -16,7 +16,7 @@ export interface ApolloProvider {
 // --- Mock implementation ---------------------------------------------------
 // Without a paid Apollo key, the search API is unavailable. Rather than invent
 // fake people (which would 404 on LinkedIn and waste outreach), we return
-// nothing and tell the user how to get real leads. The 12 public-data
+// nothing and tell the user how to get real leads. The 13 public-data
 // connectors and CSV import remain fully available.
 class MockApolloProvider implements ApolloProvider {
   readonly name = "apollo:mock";
